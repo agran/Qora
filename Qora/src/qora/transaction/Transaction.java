@@ -155,7 +155,7 @@ public abstract class Transaction {
 			hasMinimumFeev2();
 		}
 		else{
-			hasMinimumFeev1()
+			hasMinimumFeev1();
 		}
 
 	}
