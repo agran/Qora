@@ -148,6 +148,25 @@ public abstract class Transaction {
 	
 	public boolean hasMinimumFee()
 	{
+		int BlockHeightV2 = 111111;
+		int lastBlockHeight = DBSet.getInstance().getHeightMap().get(DBSet.getInstance().getBlockMap().getLastBlockSignature());
+	
+		if(lastBlockHeight >= BlockHeightV2){
+			hasMinimumFeev2();
+		}
+		else{
+			hasMinimumFeev1()
+		}
+
+	}
+	
+	public boolean hasMinimumFeev1()
+	{
+		return this.fee.compareTo(MINIMUM_FEE) >= 0;
+	}
+	
+	public boolean hasMinimumFeev2()
+	{
 		return this.fee.compareTo(MINIMUM_FEE) >= 1;
 	}
 	
