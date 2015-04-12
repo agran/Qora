@@ -148,7 +148,7 @@ public abstract class Transaction {
 	
 	public boolean hasMinimumFee()
 	{
-		return this.fee.compareTo(MINIMUM_FEE) >= 0;
+		return this.fee.compareTo(MINIMUM_FEE) >= 1;
 	}
 	
 	public boolean hasMinimumFeePerByte()
