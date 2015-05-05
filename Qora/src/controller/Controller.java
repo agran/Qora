@@ -111,7 +111,7 @@ public class Controller extends Observable {
     		}
         }
 		
-		if(!disableRpc)
+		if(!disableWeb)
         {
         	if(!Network.isPortAvailable(Settings.getInstance().getWebPort()))
     		{
