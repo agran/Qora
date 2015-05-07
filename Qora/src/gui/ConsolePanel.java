@@ -13,6 +13,7 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 
+import utils.MenuPopupUtil;
 import api.ApiClient;
 
 @SuppressWarnings("serial")
@@ -81,5 +82,9 @@ public class ConsolePanel extends JPanel
             }
 		});
 		this.add(this.txtCommand, txtGBC);
+		
+		//CONTEXT MENU
+		MenuPopupUtil.installContextMenu(this.areaConsole);
+		MenuPopupUtil.installContextMenu(this.txtCommand);
 	}
 }
