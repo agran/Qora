@@ -297,7 +297,7 @@ public class SendMoneyPanel extends JPanel
 				recipient = result.getA();
 			}else
 			{
-				JOptionPane.showMessageDialog(null, "Invalid address!" , "Error", JOptionPane.ERROR_MESSAGE);
+				JOptionPane.showMessageDialog(null, "Invalid address or name!" , "Error", JOptionPane.ERROR_MESSAGE);
 				
 				//ENABLE
 				this.sendButton.setEnabled(true);
