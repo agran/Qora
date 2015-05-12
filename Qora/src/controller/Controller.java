@@ -94,7 +94,7 @@ public class Controller extends Observable {
 		return this.status;
 	}
 	
-	public void start(boolean disableRpc, boolean disableWeb) throws Exception
+	public void start() throws Exception
 	{
 		//CHECK NETWORK PORT AVAILABLE
 		if(!Network.isPortAvailable(Network.PORT))
@@ -103,7 +103,7 @@ public class Controller extends Observable {
 		}
 		
 		//CHECK RPC PORT AVAILABLE
-		if(!disableRpc)
+		if(Settings.getInstance().isRpcEnabled())
         {
         	if(!Network.isPortAvailable(Settings.getInstance().getRpcPort()))
     		{
@@ -111,7 +111,7 @@ public class Controller extends Observable {
     		}
         }
 		
-		if(!disableWeb)
+		if(Settings.getInstance().isWebEnabled())
         {
         	if(!Network.isPortAvailable(Settings.getInstance().getWebPort()))
     		{
@@ -158,13 +158,13 @@ public class Controller extends Observable {
         this.blockChain = new BlockChain();
          
         
-        if(!disableRpc)
+        if(Settings.getInstance().isRpcEnabled())
         {
         	this.rpcService = new ApiService();
         	this.rpcService.start();
         }
         
-        if(!disableWeb)
+        if(Settings.getInstance().isWebEnabled())
         {
         	this.webService = new WebService();
         	this.webService.start();
