@@ -35,6 +35,18 @@ public class Menu extends JMenuBar
         	}
         });
         fileMenu.add(consoleItem);
+
+        //CONSOLE
+        JMenuItem settingsItem = new JMenuItem("Settings");
+        settingsItem.getAccessibleContext().setAccessibleDescription("Settings of program");
+        settingsItem.addActionListener(new ActionListener()
+        {
+        	public void actionPerformed(ActionEvent e)
+        	{
+                new SettingsFrame();
+        	}
+        });
+        fileMenu.add(settingsItem);
         
         //QUIT
         JMenuItem quitItem = new JMenuItem("Quit");

@@ -24,10 +24,15 @@ public class Settings {
 	//RPC
 	private static final int DEFAULT_RPC_PORT = 9085;
 	private static final String DEFAULT_RPC_ALLOWED = "127.0.0.1";
+	private static final boolean DEFAULT_RPC_ENABLED = true;
 	
 	//WEB
 	private static final int DEFAULT_WEB_PORT = 9083;
 	private static final String DEFAULT_WEB_ALLOWED = "127.0.0.1";
+	private static final boolean DEFAULT_WEB_ENABLED = true;
+	
+	//GUI
+	private static final boolean DEFAULT_GUI_ENABLED = true;
 	
 	//DATA
 	private static final String DEFAULT_DATA_DIR = "data";
@@ -197,6 +202,16 @@ public class Settings {
 		}
 	}
 
+	public boolean isRpcEnabled() 
+	{
+		if(this.settingsJSON.containsKey("rpcenabled"))
+		{
+			return ((Boolean) this.settingsJSON.get("rpcenabled")).booleanValue();
+		}
+		
+		return DEFAULT_RPC_ENABLED;
+	}
+	
 	public int getWebPort()
 	{
 		if(this.settingsJSON.containsKey("webport"))
@@ -235,6 +250,16 @@ public class Settings {
 			//RETURN EMPTY LIST
 			return new String[0];
 		}
+	}
+	
+	public boolean isWebEnabled() 
+	{
+		if(this.settingsJSON.containsKey("webenabled"))
+		{
+			return ((Boolean) this.settingsJSON.get("webenabled")).booleanValue();
+		}
+		
+		return DEFAULT_WEB_ENABLED;
 	}
 	
 	public String getWalletDir()
@@ -285,5 +310,15 @@ public class Settings {
 		}
 		
 		return DEFAULT_MAX_BYTE_PER_FEE;
+	}
+	
+	public boolean isGuiEnabled() 
+	{
+		if(this.settingsJSON.containsKey("guienabled"))
+		{
+			return ((Boolean) this.settingsJSON.get("guienabled")).booleanValue();
+		}
+		
+		return DEFAULT_GUI_ENABLED;
 	}
 }
