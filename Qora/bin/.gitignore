@@ -1,1 +1,12 @@
-/bin/
+/api/
+/at/
+/controller/
+/database/
+/gui/
+/namewebserver/
+/network/
+/ntp/
+/qora/
+/settings/
+/test/
+/utils/

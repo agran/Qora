@@ -42,10 +42,6 @@ public class Start {
 					//START GUI
 					new Gui();
 				}
-				else
-				{
-					JOptionPane.showMessageDialog(null, "1111", "Startup Error", JOptionPane.ERROR_MESSAGE);
-				}
 			}
 			catch(Exception e)
 			{

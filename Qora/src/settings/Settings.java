@@ -48,12 +48,32 @@ public class Settings {
 	
 	public static Settings getInstance()
 	{
+		return getInstance(false);
+	}
+	
+	public static Settings getInstance(boolean reload)
+	{
+		if(reload)
+		{
+			try {
+				instance.finalize();
+			} catch (Throwable e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
 		if(instance == null)
 		{
 			instance = new Settings();
 		}
 		
 		return instance;
+	}
+	
+	public JSONObject Dump()
+	{
+		return settingsJSON;
 	}
 	
 	private Settings()

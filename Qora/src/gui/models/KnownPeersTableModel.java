@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
 
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.table.AbstractTableModel;
 
 import settings.Settings;
@@ -39,11 +41,25 @@ public class KnownPeersTableModel extends AbstractTableModel implements Observer
 		}
 	}
 	
+	
+	public void deleteAddress(int row) 
+	{
+		String address = this.getValueAt(row, 0).toString();
+		int n = JOptionPane.showConfirmDialog(
+				new JFrame(), "Do you want to remove address "+ address +"?",
+                "Ñonfirmation",
+                JOptionPane.YES_NO_OPTION);
+		if (n == JOptionPane.YES_OPTION) {
+			peers.remove(row);
+			peersStatus.remove(row);
+			this.fireTableDataChanged();
+		} 
+	}
+	
 	public KnownPeersTableModel()
 	{
 		peers = Settings.getInstance().getKnownPeers();
 		
-				
 		for(Peer peer: peers)
 		{
 			peersStatus.add(false);
@@ -115,6 +131,9 @@ public class KnownPeersTableModel extends AbstractTableModel implements Observer
 		
 		if(message.getType() == ObserverMessage.LIST_PEER_TYPE)
 		{
+		    //(JTable)this.get
+		    //component.setRowSelectionInterval(row, row);
+		    
 			List<Peer> peersBuff = (List<Peer>) message.getValue();
 			int n = 0;
 			
@@ -134,12 +153,11 @@ public class KnownPeersTableModel extends AbstractTableModel implements Observer
 				if(!connected)
 				{
 					this.peersStatus.set(n, false);
+					this.fireTableRowsUpdated(n, n);
 				}
 				
 				n++;
 			}	
-			
-			this.fireTableDataChanged();
 		}
 	}
 

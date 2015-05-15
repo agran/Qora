@@ -35,6 +35,7 @@ import javax.swing.table.TableRowSorter;
 import qora.account.Account;
 import qora.assets.Asset;
 import utils.BigDecimalStringComparator;
+import utils.TableMenuPopupUtil;
 import controller.Controller;
 
 @SuppressWarnings("serial")
@@ -165,17 +166,9 @@ public class AccountsPanel extends JPanel implements ItemListener
 		});
 		menu.add(copyGeneratingBalance);
 		
-		table.setComponentPopupMenu(menu);
-		table.addMouseListener(new MouseAdapter() 
-		{
-		     @Override
-		     public void mousePressed(MouseEvent e) 
-		     {
-		        Point p = e.getPoint();
-		        int row = table.rowAtPoint(p);
-		        table.setRowSelectionInterval(row, row);
-		     }
-		});
+		TableMenuPopupUtil.installContextMenu(table, menu);
+		
+	//	table.setComponentPopupMenu(menu);
 		
 		//ADD ACCOUNTS TABLE
 		this.add(new JScrollPane(table), tableGBC);
