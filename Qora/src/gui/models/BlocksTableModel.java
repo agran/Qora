@@ -1,14 +1,14 @@
 package gui.models;
-import java.text.DateFormat;
-import java.util.Date;
 import java.util.Observable;
 import java.util.Observer;
 
+import qora.block.Block;
+import utils.DateTimeFormat;
+import utils.NumberAsString;
+import utils.ObserverMessage;
 import controller.Controller;
 import database.BlockMap;
 import database.SortableList;
-import qora.block.Block;
-import utils.ObserverMessage;
 
 @SuppressWarnings("serial")
 public class BlocksTableModel extends QoraTableModel<byte[], Block> implements Observer{
@@ -60,44 +60,49 @@ public class BlocksTableModel extends QoraTableModel<byte[], Block> implements O
 	@Override
 	public Object getValueAt(int row, int column)
 	{
-		if(blocks == null || blocks.size() - 1 < row)
-		{
+		try {
+			
+			if(blocks == null || blocks.size() - 1 < row)
+			{
+				return null;
+			}
+			
+			Block block = blocks.get(row).getB();
+			
+			switch(column)
+			{
+			case COLUMN_HEIGHT:
+				
+				return block.getHeight();
+				
+			case COLUMN_TIMESTAMP:
+				
+				return DateTimeFormat.timestamptoString(block.getTimestamp());
+				
+			case COLUMN_GENERATOR:
+				
+				return block.getGenerator().getAddress();
+				
+			case COLUMN_BASETARGET:
+				
+				return block.getGeneratingBalance();
+				
+			case COLUMN_TRANSACTIONS:
+				
+				return block.getTransactionCount();
+				
+			case COLUMN_FEE:	
+				
+				return NumberAsString.getInstance().numberAsString(block.getTotalFee());
+				
+			}
+			
+			return null;
+		
+		} catch (Exception e) {
+			e.printStackTrace();
 			return null;
 		}
-		
-		Block block = blocks.get(row).getB();
-		
-		switch(column)
-		{
-		case COLUMN_HEIGHT:
-			
-			return block.getHeight();
-			
-		case COLUMN_TIMESTAMP:
-			
-			Date date = new Date(block.getTimestamp());
-			DateFormat format = DateFormat.getDateTimeInstance();
-			return format.format(date);
-			
-		case COLUMN_GENERATOR:
-			
-			return block.getGenerator().getAddress();
-			
-		case COLUMN_BASETARGET:
-			
-			return block.getGeneratingBalance();
-			
-		case COLUMN_TRANSACTIONS:
-			
-			return block.getTransactionCount();
-			
-		case COLUMN_FEE:	
-			
-			return block.getTotalFee().toPlainString();
-			
-		}
-		
-		return null;
 	}
 
 	@Override

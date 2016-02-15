@@ -6,6 +6,8 @@ import java.awt.GridBagLayout;
 import java.awt.Image;
 import java.awt.Insets;
 import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
@@ -19,11 +21,13 @@ import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JMenuItem;
+import javax.swing.JPopupMenu;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 
-import qora.crypto.Base58;
 import controller.Controller;
+import qora.crypto.Base58;
 
 @SuppressWarnings("serial")
 public class CreateWalletFrame extends JFrame {
@@ -81,11 +85,27 @@ public class CreateWalletFrame extends JFrame {
 		//ADD TEXTBOX
 		labelGBC.gridy = 1;
 		this.seed = this.generateSeed();
-		JTextField seedTxt = new JTextField();
+		final JTextField seedTxt = new JTextField();
 		seedTxt.setText(Base58.encode(seed));
 		seedTxt.setEditable(false);	
 		seedTxt.setBackground(new JTextField().getBackground());
 		this.add(seedTxt, labelGBC);
+		
+		// MENU
+		JPopupMenu menu = new JPopupMenu();
+		JMenuItem copySeed = new JMenuItem("Copy Seed");
+		copySeed.addActionListener(new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e) 
+			{
+				Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+				StringSelection value = new StringSelection(seedTxt.getText());
+			    clipboard.setContents(value, null);
+			}
+		});
+		menu.add(copySeed);
+		seedTxt.setComponentPopupMenu(menu);
+		
 		
 		//LABEL
       	labelGBC.gridy = 2;
@@ -99,7 +119,7 @@ public class CreateWalletFrame extends JFrame {
       	
       	//LABEL
       	labelGBC.gridy = 4;
-      	JLabel label4 = new JLabel("KEEP THIS SEED PRIVATE AND SECURE!");
+      	JLabel label4 = new JLabel("<html><b>KEEP THIS SEED PRIVATE AND SECURE!</b></html>");
       	this.add(label4, labelGBC);
       	
      	//LABEL
@@ -117,6 +137,8 @@ public class CreateWalletFrame extends JFrame {
 		        onNextClick();
 		    }
 		});	
+        
+        
         nextButton.setPreferredSize(new Dimension(80, 25));
     	this.add(nextButton, buttonGBC);
     	
@@ -176,7 +198,7 @@ public class CreateWalletFrame extends JFrame {
 	public void onConfirm(String password) 
 	{
 		//CREATE WALLET
-		Controller.getInstance().createWallet(this.seed, password, 10);
+		Controller.getInstance().recoverWallet(this.seed, password, 10);
 		
 		//LET GUI KNOW
 		parent.onWalletCreated();

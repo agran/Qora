@@ -8,17 +8,18 @@ import java.util.List;
 
 import org.json.simple.JSONObject;
 
-import com.google.common.primitives.Bytes;
-import com.google.common.primitives.Ints;
-import com.google.common.primitives.Longs;
-
-import database.DBSet;
 import qora.account.Account;
 import qora.account.PrivateKeyAccount;
 import qora.account.PublicKeyAccount;
 import qora.assets.Asset;
 import qora.assets.Order;
 import qora.crypto.Crypto;
+
+import com.google.common.primitives.Bytes;
+import com.google.common.primitives.Ints;
+import com.google.common.primitives.Longs;
+
+import database.DBSet;
 
 public class CreateOrderTransaction extends Transaction 
 {
@@ -273,6 +274,15 @@ public class CreateOrderTransaction extends Transaction
 			return NO_BALANCE;
 		}
 		
+		//ONLY AFTER POWFIX_RELEASE TO SAVE THE OLD NETWORK
+		if(this.timestamp >= Transaction.getPOWFIX_RELEASE()) {
+			//CHECK IF SENDER HAS ENOUGH QORA BALANCE
+			if(this.creator.getConfirmedBalance(fork).compareTo(BigDecimal.ZERO) == -1)
+			{
+				return NO_BALANCE;
+			}	
+		}
+		
 		//CHECK IF HAVE IS NOT DIVISBLE
 		if(!this.order.getHaveAsset(db).isDivisible())
 		{
@@ -302,7 +312,7 @@ public class CreateOrderTransaction extends Transaction
 			}
 		}
 		
-		//CHECK IF REFERENCE IS OKE
+		//CHECK IF REFERENCE IS OK
 		if(!Arrays.equals(this.creator.getLastReference(db), this.reference))
 		{
 			return INVALID_REFERENCE;
@@ -314,7 +324,7 @@ public class CreateOrderTransaction extends Transaction
 			return NEGATIVE_FEE;
 		}
 		
-		return VALIDATE_OKE;
+		return VALIDATE_OK;
 	}
 	
 	//PROCESS/ORPHAN
@@ -347,7 +357,7 @@ public class CreateOrderTransaction extends Transaction
 	}
 
 	@Override
-	public Account getCreator() 
+	public PublicKeyAccount getCreator() 
 	{
 		return this.creator;
 	}

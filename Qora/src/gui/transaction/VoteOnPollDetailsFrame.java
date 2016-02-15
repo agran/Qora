@@ -5,16 +5,19 @@ import java.awt.GridBagLayout;
 import java.awt.Image;
 import java.awt.Insets;
 import java.awt.Toolkit;
-import java.text.DateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
-import javax.swing.*;
+import javax.swing.JComponent;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 
 import qora.crypto.Base58;
 import qora.transaction.VoteOnPollTransaction;
+import utils.DateTimeFormat;
+import utils.MenuPopupUtil;
 
 @SuppressWarnings("serial")
 public class VoteOnPollDetailsFrame extends JFrame
@@ -76,6 +79,7 @@ public class VoteOnPollDetailsFrame extends JFrame
 		detailGBC.gridy = 1;
 		JTextField signature = new JTextField(Base58.encode(pollVote.getSignature()));
 		signature.setEditable(false);
+		MenuPopupUtil.installContextMenu(signature);
 		this.add(signature, detailGBC);
 		
 		//LABEL REFERENCE
@@ -87,6 +91,7 @@ public class VoteOnPollDetailsFrame extends JFrame
 		detailGBC.gridy = 2;
 		JTextField reference = new JTextField(Base58.encode(pollVote.getReference()));
 		reference.setEditable(false);
+		MenuPopupUtil.installContextMenu(reference);
 		this.add(reference, detailGBC);
 		
 		//LABEL TIMESTAMP
@@ -96,9 +101,9 @@ public class VoteOnPollDetailsFrame extends JFrame
 						
 		//TIMESTAMP
 		detailGBC.gridy = 3;
-		Date date = new Date(pollVote.getTimestamp());
-		DateFormat format = DateFormat.getDateTimeInstance();
-		JLabel timestamp = new JLabel(format.format(date));
+		JTextField timestamp = new JTextField(DateTimeFormat.timestamptoString(pollVote.getTimestamp()));
+		timestamp.setEditable(false);
+		MenuPopupUtil.installContextMenu(timestamp);
 		this.add(timestamp, detailGBC);
 		
 		//LABEL CREATOR
@@ -110,6 +115,7 @@ public class VoteOnPollDetailsFrame extends JFrame
 		detailGBC.gridy = 4;
 		JTextField creator = new JTextField(pollVote.getCreator().getAddress());
 		creator.setEditable(false);
+		MenuPopupUtil.installContextMenu(creator);
 		this.add(creator, detailGBC);
 		
 		//LABEL NAME
@@ -121,6 +127,7 @@ public class VoteOnPollDetailsFrame extends JFrame
 		detailGBC.gridy = 5;
 		JTextField name = new JTextField(pollVote.getPoll());
 		name.setEditable(false);
+		MenuPopupUtil.installContextMenu(name);
 		this.add(name, detailGBC);		
 		
 		//LABEL OPTION
@@ -132,6 +139,7 @@ public class VoteOnPollDetailsFrame extends JFrame
 		detailGBC.gridy = 6;
 		JTextField option = new JTextField(String.valueOf(pollVote.getOption()));
 		option.setEditable(false);
+		MenuPopupUtil.installContextMenu(option);
 		this.add(option, detailGBC);		
 		
 		//LABEL FEE
@@ -143,6 +151,7 @@ public class VoteOnPollDetailsFrame extends JFrame
 		detailGBC.gridy = 7;
 		JTextField fee = new JTextField(pollVote.getFee().toPlainString());
 		fee.setEditable(false);
+		MenuPopupUtil.installContextMenu(fee);
 		this.add(fee, detailGBC);	
 		
 		//LABEL CONFIRMATIONS

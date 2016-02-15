@@ -11,16 +11,17 @@ import ntp.NTP;
 
 import org.json.simple.JSONObject;
 
-import com.google.common.primitives.Bytes;
-import com.google.common.primitives.Ints;
-import com.google.common.primitives.Longs;
-
-import database.DBSet;
 import qora.account.Account;
 import qora.account.PrivateKeyAccount;
 import qora.account.PublicKeyAccount;
 import qora.assets.Asset;
 import qora.crypto.Crypto;
+
+import com.google.common.primitives.Bytes;
+import com.google.common.primitives.Ints;
+import com.google.common.primitives.Longs;
+
+import database.DBSet;
 
 public class IssueAssetTransaction extends Transaction 
 {
@@ -191,7 +192,7 @@ public class IssueAssetTransaction extends Transaction
 	public int isValid(DBSet db) 
 	{
 		//CHECK IF RELEASED
-		if(NTP.getTime() < ASSETS_RELEASE)
+		if(NTP.getTime() < Transaction.getASSETS_RELEASE())
 		{
 			return NOT_YET_RELEASED;
 		}
@@ -229,7 +230,7 @@ public class IssueAssetTransaction extends Transaction
 			return NO_BALANCE;
 		}
 		
-		//CHECK IF REFERENCE IS OKE
+		//CHECK IF REFERENCE IS OK
 		if(!Arrays.equals(this.issuer.getLastReference(db), this.reference))
 		{
 			return INVALID_REFERENCE;
@@ -241,7 +242,7 @@ public class IssueAssetTransaction extends Transaction
 			return NEGATIVE_FEE;
 		}
 		
-		return VALIDATE_OKE;
+		return VALIDATE_OK;
 	}
 	
 	//PROCESS/ORPHAN
@@ -287,7 +288,7 @@ public class IssueAssetTransaction extends Transaction
 	}
 
 	@Override
-	public Account getCreator() 
+	public PublicKeyAccount getCreator() 
 	{
 		return this.issuer;
 	}

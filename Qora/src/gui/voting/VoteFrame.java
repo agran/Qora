@@ -1,9 +1,12 @@
 package gui.voting;
 
+import gui.AccountRenderer;
 import gui.PasswordPane;
 import gui.models.AccountsComboBoxModel;
+import gui.models.AssetsAllComboBoxModel;
 import gui.models.OptionsComboBoxModel;
 
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -13,21 +16,30 @@ import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.math.BigDecimal;
-import java.sql.Date;
-import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.swing.*;
+import javax.swing.DefaultListCellRenderer;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JOptionPane;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 
-import controller.Controller;
 import qora.account.Account;
 import qora.account.PrivateKeyAccount;
+import qora.assets.Asset;
 import qora.transaction.Transaction;
 import qora.voting.Poll;
 import qora.voting.PollOption;
+import utils.DateTimeFormat;
 import utils.Pair;
+import controller.Controller;
 
 @SuppressWarnings("serial")
 public class VoteFrame extends JFrame
@@ -37,8 +49,9 @@ public class VoteFrame extends JFrame
 	private JComboBox<PollOption> cbxOptions;
 	private JButton voteButton;
 	private JTextField txtFee;
+	private JComboBox<Asset> cbxAssets;
 	
-	public VoteFrame(Poll poll, int option)
+	public VoteFrame(Poll poll, int option, Asset asset)
 	{
 		super("Qora - Vote");
 		
@@ -60,6 +73,7 @@ public class VoteFrame extends JFrame
 		
 		//PADDING
 		((JComponent) this.getContentPane()).setBorder(new EmptyBorder(5, 5, 5, 5));
+		
 		
 		//LABEL GBC
 		GridBagConstraints labelGBC = new GridBagConstraints();
@@ -101,41 +115,102 @@ public class VoteFrame extends JFrame
 		txtAreaDescription.setBorder(name.getBorder());
 		txtAreaDescription.setEditable(false);
 		this.add(txtAreaDescription, detailGBC);		
+
+		//ASSET LABEL GBC
+		GridBagConstraints assetLabelGBC = new GridBagConstraints();
+		assetLabelGBC.insets = new Insets(0, 5, 5, 0);
+		assetLabelGBC.fill = GridBagConstraints.HORIZONTAL;   
+		assetLabelGBC.anchor = GridBagConstraints.CENTER;
+		assetLabelGBC.weightx = 0;	
+		assetLabelGBC.gridwidth = 1;
+		assetLabelGBC.gridx = 0;
+		assetLabelGBC.gridy = 3;
+		
+		//ASSETS GBC
+		GridBagConstraints assetsGBC = new GridBagConstraints();
+		assetsGBC.insets = new Insets(0, 5, 5, 0);
+		assetsGBC.fill = GridBagConstraints.HORIZONTAL;   
+		assetsGBC.anchor = GridBagConstraints.NORTHWEST;
+		assetsGBC.weightx = 0;	
+		assetsGBC.gridwidth = 2;
+		assetsGBC.gridx = 1;
+		assetsGBC.gridy = 3;
+		
+		this.add(new JLabel("Asset:"), assetLabelGBC);
+		
+		cbxAssets = new JComboBox<Asset>(new AssetsAllComboBoxModel());
+		cbxAssets.setSelectedItem(asset);
+		this.add(cbxAssets, assetsGBC);
+		
+		cbxAssets.addActionListener (new ActionListener () {
+		    public void actionPerformed(ActionEvent e) {
+
+		    	Asset asset = ((Asset) cbxAssets.getSelectedItem());
+
+		    	if(asset != null)
+		    	{
+		    		((AccountRenderer)cbxAccount.getRenderer()).setAsset(asset.getKey());
+		    		cbxAccount.repaint();
+		    		cbxOptions.repaint();
+		    		
+		    	}
+		    }
+		});
 		
         //LABEL ACCOUNT
-      	labelGBC.gridy = 3;
+      	labelGBC.gridy = 4;
       	JLabel ownerLabel = new JLabel("Account:");
       	this.add(ownerLabel, labelGBC);
       		
       	//CBX ACCOUNT
-      	detailGBC.gridy = 3;
+      	detailGBC.gridy = 4;
       	this.cbxAccount = new JComboBox<Account>(new AccountsComboBoxModel());
+      	cbxAccount.setRenderer(new AccountRenderer(asset.getKey()));
+      	
       	this.add(this.cbxAccount, detailGBC);
 		
       	//LABEL OPTIONS
-      	labelGBC.gridy = 4;
+      	labelGBC.gridy = 5;
       	JLabel optionsLabel = new JLabel("Option:");
       	this.add(optionsLabel, labelGBC);
       		
       	//CBX ACCOUNT
-      	detailGBC.gridy = 4;
+      	detailGBC.gridy = 5;
       	this.cbxOptions = new JComboBox<PollOption>(new OptionsComboBoxModel(poll.getOptions()));
       	this.cbxOptions.setSelectedIndex(option);
+      	this.cbxOptions.setRenderer(new DefaultListCellRenderer() {
+      	    @SuppressWarnings("rawtypes")
+			@Override
+      	    public Component getListCellRendererComponent(JList list,
+      	                                               Object value,
+      	                                               int index,
+      	                                               boolean isSelected,
+      	                                               boolean cellHasFocus) {
+      	    	PollOption employee = (PollOption)value;
+      	        
+      	    	Asset asset = ((Asset) cbxAssets.getSelectedItem());
+      	    	
+      	    	value = employee.toString(asset.getKey());
+      	        return super.getListCellRendererComponent(list, value,
+      	                index, isSelected, cellHasFocus);
+      	    }
+      	});
+      	
       	this.add(this.cbxOptions, detailGBC);
       	
       	 //LABEL FEE
-      	labelGBC.gridy = 5;
-      	JLabel feeLabel = new JLabel("Fee:");
+      	labelGBC.gridy = 6;
+      	JLabel feeLabel = new JLabel("Fee(Qora):");
       	this.add(feeLabel, labelGBC);
       		
       	//TXT FEE
-      	detailGBC.gridy = 5;
+      	detailGBC.gridy = 6;
       	this.txtFee = new JTextField();
       	this.txtFee.setText("1");
         this.add(this.txtFee, detailGBC);
 		
 		//ADD EXCHANGE BUTTON
-		detailGBC.gridy = 6;
+		detailGBC.gridy = 7;
 		voteButton = new JButton("Vote");
 		voteButton.setPreferredSize(new Dimension(100, 25));
 		voteButton.addActionListener(new ActionListener()
@@ -159,10 +234,10 @@ public class VoteFrame extends JFrame
 		//DISABLE
 		this.voteButton.setEnabled(false);
 	
-		//CHECK IF NETWORK OKE
-		if(Controller.getInstance().getStatus() != Controller.STATUS_OKE)
+		//CHECK IF NETWORK OK
+		if(Controller.getInstance().getStatus() != Controller.STATUS_OK)
 		{
-			//NETWORK NOT OKE
+			//NETWORK NOT OK
 			JOptionPane.showMessageDialog(null, "You are unable to send a transaction while synchronizing or while having no connections!", "Error", JOptionPane.ERROR_MESSAGE);
 			
 			//ENABLE
@@ -216,7 +291,7 @@ public class VoteFrame extends JFrame
 			//CHECK VALIDATE MESSAGE
 			switch(result.getB())
 			{
-			case Transaction.VALIDATE_OKE:
+			case Transaction.VALIDATE_OK:
 				
 				JOptionPane.showMessageDialog(new JFrame(), "Poll vote has been sent!", "Success", JOptionPane.INFORMATION_MESSAGE);
 				this.dispose();
@@ -224,9 +299,7 @@ public class VoteFrame extends JFrame
 				
 			case Transaction.NOT_YET_RELEASED:
 				
-				Date release = new Date(Transaction.VOTING_RELEASE);	
-				DateFormat format = DateFormat.getDateTimeInstance();
-				JOptionPane.showMessageDialog(new JFrame(), "Voting will be enabled at " + format.format(release) + "!",  "Error", JOptionPane.ERROR_MESSAGE);
+				JOptionPane.showMessageDialog(new JFrame(), "Voting will be enabled at " + DateTimeFormat.timestamptoString(Transaction.getVOTING_RELEASE()) + "!",  "Error", JOptionPane.ERROR_MESSAGE);
 				break;
 			
 			case Transaction.ALREADY_VOTED_FOR_THAT_OPTION:
@@ -238,6 +311,11 @@ public class VoteFrame extends JFrame
 				
 				JOptionPane.showMessageDialog(new JFrame(), "Fee must be at least 1!", "Error", JOptionPane.ERROR_MESSAGE);
 				break;	
+				
+			case Transaction.FEE_LESS_REQUIRED:
+				
+				JOptionPane.showMessageDialog(new JFrame(), "Fee below the minimum for this size of a transaction!", "Error", JOptionPane.ERROR_MESSAGE);
+				break;
 				
 			case Transaction.NO_BALANCE:
 			

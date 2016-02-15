@@ -18,6 +18,8 @@ import org.mapdb.DB;
 import org.mapdb.Fun.Function2;
 import org.mapdb.Fun.Tuple2;
 
+import controller.Controller;
+import database.wallet.WalletDatabase;
 import utils.ObserverMessage;
 
 public abstract class DBMap<T, U> extends Observable {
@@ -132,6 +134,8 @@ public abstract class DBMap<T, U> extends Observable {
 	{
 		try
 		{
+			//Controller.getInstance().
+			
 			U old = this.map.put(key, value);
 			
 			if(this.deleted != null)
@@ -142,14 +146,24 @@ public abstract class DBMap<T, U> extends Observable {
 			//COMMIT
 			if(this.databaseSet != null)
 			{
-				this.databaseSet.commit();
+				if(!(this.databaseSet instanceof WalletDatabase && Controller.getInstance().isProcessSynchronize))
+				{
+					this.databaseSet.commit();
+				}
 			}
-			
+		
 			//NOTIFY ADD
 			if(this.getObservableData().containsKey(NOTIFY_ADD))
 			{
 				this.setChanged();
-				this.notifyObservers(new ObserverMessage(this.getObservableData().get(NOTIFY_ADD), value));
+				if ( this.getObservableData().get(NOTIFY_ADD).equals( ObserverMessage.ADD_AT_TX_TYPE ) )
+				{
+					this.notifyObservers(new ObserverMessage(this.getObservableData().get(NOTIFY_ADD), new Tuple2<T,U>(key,value)));
+				}
+				else
+				{
+					this.notifyObservers(new ObserverMessage(this.getObservableData().get(NOTIFY_ADD), value));
+				}
 			}
 			
 			//NOTIFY LIST
@@ -182,7 +196,14 @@ public abstract class DBMap<T, U> extends Observable {
 				if(this.getObservableData().containsKey(NOTIFY_REMOVE))
 				{
 					this.setChanged();
-					this.notifyObservers(new ObserverMessage(this.getObservableData().get(NOTIFY_REMOVE), value));
+					if ( this.getObservableData().get(NOTIFY_REMOVE).equals( ObserverMessage.REMOVE_AT_TX ))
+					{
+						this.notifyObservers(new ObserverMessage(this.getObservableData().get(NOTIFY_REMOVE), new Tuple2<T,U>(key,value)));
+					}
+					else
+					{
+						this.notifyObservers(new ObserverMessage(this.getObservableData().get(NOTIFY_REMOVE), value));
+					}
 				}
 				
 				//NOTIFY LIST
@@ -267,6 +288,20 @@ public abstract class DBMap<T, U> extends Observable {
 			
 			return new IndexIterator<T>(this.indexes.get(index));
 		}
+	}
+
+	public SortableList<T, U> getList() 
+	{
+		return new SortableList<T, U>(this);
+	}
+	
+	public SortableList<T, U> getParentList()
+	{
+		if (this.parent!=null)
+		{
+			return new SortableList<T, U>(this.parent);
+		}
+		return null;
 	}
 	
 	public void reset() 

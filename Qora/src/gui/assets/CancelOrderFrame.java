@@ -11,19 +11,23 @@ import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.math.BigDecimal;
-import java.text.DateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
-import javax.swing.*;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 
-import controller.Controller;
 import qora.account.PrivateKeyAccount;
 import qora.assets.Order;
 import qora.transaction.Transaction;
+import utils.DateTimeFormat;
 import utils.Pair;
+import controller.Controller;
 
 @SuppressWarnings("serial")
 public class CancelOrderFrame extends JFrame
@@ -88,10 +92,7 @@ public class CancelOrderFrame extends JFrame
       	//TXT TIMESTAMP
       	txtGBC.gridy = 1;
     
-		Date date = new Date(order.getTimestamp());
-		DateFormat format = DateFormat.getDateTimeInstance();
-      	
-      	JTextField txtTimestamp = new JTextField(format.format(date));
+		JTextField txtTimestamp = new JTextField(DateTimeFormat.timestamptoString(order.getTimestamp()));
       	txtTimestamp.setEditable(false);
       	this.add(txtTimestamp, txtGBC);
         
@@ -186,10 +187,10 @@ public class CancelOrderFrame extends JFrame
 		//DISABLE
 		this.cancelOrderButton.setEnabled(false);
 		
-		//CHECK IF NETWORK OKE
-		if(Controller.getInstance().getStatus() != Controller.STATUS_OKE)
+		//CHECK IF NETWORK OK
+		if(Controller.getInstance().getStatus() != Controller.STATUS_OK)
 		{
-			//NETWORK NOT OKE
+			//NETWORK NOT OK
 			JOptionPane.showMessageDialog(null, "You are unable to send a transaction while synchronizing or while having no connections!", "Error", JOptionPane.ERROR_MESSAGE);
 			
 			//ENABLE
@@ -237,7 +238,7 @@ public class CancelOrderFrame extends JFrame
 			//CHECK VALIDATE MESSAGE
 			switch(result.getB())
 			{
-			case Transaction.VALIDATE_OKE:
+			case Transaction.VALIDATE_OK:
 				
 				JOptionPane.showMessageDialog(new JFrame(), "Cancel order has been sent!", "Success", JOptionPane.INFORMATION_MESSAGE);
 				this.dispose();
@@ -262,6 +263,11 @@ public class CancelOrderFrame extends JFrame
 				
 				JOptionPane.showMessageDialog(new JFrame(), "Fee must be at least 1!", "Error", JOptionPane.ERROR_MESSAGE);
 				break;	
+				
+			case Transaction.FEE_LESS_REQUIRED:
+				
+				JOptionPane.showMessageDialog(new JFrame(), "Fee below the minimum for this size of a transaction!", "Error", JOptionPane.ERROR_MESSAGE);
+				break;
 				
 			case Transaction.NO_BALANCE:
 			

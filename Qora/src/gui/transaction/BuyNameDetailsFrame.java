@@ -5,16 +5,19 @@ import java.awt.GridBagLayout;
 import java.awt.Image;
 import java.awt.Insets;
 import java.awt.Toolkit;
-import java.text.DateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
-import javax.swing.*;
+import javax.swing.JComponent;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 
 import qora.crypto.Base58;
 import qora.transaction.BuyNameTransaction;
+import utils.DateTimeFormat;
+import utils.MenuPopupUtil;
 
 @SuppressWarnings("serial")
 public class BuyNameDetailsFrame extends JFrame
@@ -76,6 +79,7 @@ public class BuyNameDetailsFrame extends JFrame
 		detailGBC.gridy = 1;
 		JTextField signature = new JTextField(Base58.encode(namePurchase.getSignature()));
 		signature.setEditable(false);
+		MenuPopupUtil.installContextMenu(signature);
 		this.add(signature, detailGBC);
 		
 		//LABEL REFERENCE
@@ -96,9 +100,9 @@ public class BuyNameDetailsFrame extends JFrame
 						
 		//TIMESTAMP
 		detailGBC.gridy = 3;
-		Date date = new Date(namePurchase.getTimestamp());
-		DateFormat format = DateFormat.getDateTimeInstance();
-		JLabel timestamp = new JLabel(format.format(date));
+		JTextField timestamp = new JTextField(DateTimeFormat.timestamptoString(namePurchase.getTimestamp()));
+		timestamp.setEditable(false);
+		MenuPopupUtil.installContextMenu(timestamp);
 		this.add(timestamp, detailGBC);
 		
 		//LABEL SELLER
@@ -110,6 +114,7 @@ public class BuyNameDetailsFrame extends JFrame
 		detailGBC.gridy = 4;
 		JTextField seller = new JTextField(namePurchase.getSeller().getAddress());
 		seller.setEditable(false);
+		MenuPopupUtil.installContextMenu(seller);
 		this.add(seller, detailGBC);
 		
 		//LABEL BUYER
@@ -121,6 +126,7 @@ public class BuyNameDetailsFrame extends JFrame
 		detailGBC.gridy = 5;
 		JTextField buyer = new JTextField(namePurchase.getBuyer().getAddress());
 		buyer.setEditable(false);
+		MenuPopupUtil.installContextMenu(buyer);
 		this.add(buyer, detailGBC);
 		
 		//LABEL NAME
@@ -132,6 +138,7 @@ public class BuyNameDetailsFrame extends JFrame
 		detailGBC.gridy = 6;
 		JTextField name = new JTextField(namePurchase.getNameSale().getKey());
 		name.setEditable(false);
+		MenuPopupUtil.installContextMenu(name);
 		this.add(name, detailGBC);		
 		
 		//LABEL PRICE
@@ -143,6 +150,7 @@ public class BuyNameDetailsFrame extends JFrame
 		detailGBC.gridy = 7;
 		JTextField price = new JTextField(namePurchase.getNameSale().getAmount().toPlainString());
 		price.setEditable(false);
+		MenuPopupUtil.installContextMenu(price);
 		this.add(price, detailGBC);		
 		
 		//LABEL FEE
@@ -154,6 +162,7 @@ public class BuyNameDetailsFrame extends JFrame
 		detailGBC.gridy = 8;
 		JTextField fee = new JTextField(namePurchase.getFee().toPlainString());
 		fee.setEditable(false);
+		MenuPopupUtil.installContextMenu(fee);
 		this.add(fee, detailGBC);	
 		
 		//LABEL CONFIRMATIONS

@@ -40,7 +40,7 @@ public class BlockMessage extends Message{
 		
 		//PARSE BLOCK
 		Block block = Block.parse(Arrays.copyOfRange(data, HEIGHT_LENGTH, data.length + 1));
-		
+
 		//CREATE MESSAGE
 		BlockMessage message = new BlockMessage(block);
 		message.height = height;

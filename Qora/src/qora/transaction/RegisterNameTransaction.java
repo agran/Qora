@@ -9,16 +9,17 @@ import java.util.List;
 
 import org.json.simple.JSONObject;
 
-import com.google.common.primitives.Bytes;
-import com.google.common.primitives.Ints;
-import com.google.common.primitives.Longs;
-
-import database.DBSet;
 import qora.account.Account;
 import qora.account.PrivateKeyAccount;
 import qora.account.PublicKeyAccount;
 import qora.crypto.Crypto;
 import qora.naming.Name;
+
+import com.google.common.primitives.Bytes;
+import com.google.common.primitives.Ints;
+import com.google.common.primitives.Longs;
+
+import database.DBSet;
 
 public class RegisterNameTransaction extends Transaction 
 {
@@ -225,7 +226,7 @@ public class RegisterNameTransaction extends Transaction
 			return NO_BALANCE;
 		}
 		
-		//CHECK IF REFERENCE IS OKE
+		//CHECK IF REFERENCE IS OK
 		if(!Arrays.equals(this.registrant.getLastReference(db), this.reference))
 		{
 			return INVALID_REFERENCE;
@@ -236,8 +237,8 @@ public class RegisterNameTransaction extends Transaction
 		{
 			return NEGATIVE_FEE;
 		}
-		
-		return VALIDATE_OKE;
+
+		return VALIDATE_OK;
 	}
 	
 	//PROCESS/ORPHAN
@@ -270,7 +271,7 @@ public class RegisterNameTransaction extends Transaction
 	}
 
 	@Override
-	public Account getCreator() 
+	public PublicKeyAccount getCreator() 
 	{
 		return this.registrant;
 	}

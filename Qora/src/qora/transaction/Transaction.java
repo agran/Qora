@@ -7,15 +7,18 @@ import java.util.List;
 
 import org.json.simple.JSONObject;
 
+import controller.Controller;
 import database.DBSet;
 import qora.account.Account;
+import qora.account.PublicKeyAccount;
+import qora.block.Block;
 import qora.crypto.Base58;
 import settings.Settings;
 
 public abstract class Transaction {
 	
 	//VALIDATION CODE
-	public static final int VALIDATE_OKE = 1;
+	public static final int VALIDATE_OK = 1;
 	public static final int INVALID_ADDRESS = 2;
 	public static final int NEGATIVE_AMOUNT = 3;
 	public static final int NEGATIVE_FEE = 4;
@@ -55,6 +58,12 @@ public abstract class Transaction {
 	public static final int INVALID_ORDER_CREATOR = 33;
 	public static final int INVALID_PAYMENTS_LENGTH = 34;
 	public static final int NEGATIVE_PRICE = 35;
+	public static final int INVALID_CREATION_BYTES = 36;
+	public static final int AT_ERROR = 10000;
+	public static final int INVALID_TAGS_LENGTH = 37;
+	public static final int INVALID_TYPE_LENGTH = 38;
+	
+	public static final int FEE_LESS_REQUIRED = 40;
 	
 	public static final int NOT_YET_RELEASED = 1000;
 	
@@ -78,15 +87,64 @@ public abstract class Transaction {
 	public static final int CREATE_ORDER_TRANSACTION = 13;
 	public static final int CANCEL_ORDER_TRANSACTION = 14;
 	public static final int MULTI_PAYMENT_TRANSACTION = 15;
+
+	public static final int DEPLOY_AT_TRANSACTION = 16;
+	
+	public static final int MESSAGE_TRANSACTION = 17;
 	
 	//MINIMUM FEE
 	public static final BigDecimal MINIMUM_FEE = BigDecimal.ONE;
 	
 	//RELEASES
-	public static final long VOTING_RELEASE = 1403715600000l;
-	public static final long ARBITRARY_TRANSACTIONS_RELEASE = 1405702800000l;
+	private static final long VOTING_RELEASE = 1403715600000l;
+	private static final long ARBITRARY_TRANSACTIONS_RELEASE = 1405702800000l;
+	private static final int AT_BLOCK_HEIGHT_RELEASE = 99000;
+	private static final int MESSAGE_BLOCK_HEIGHT_RELEASE = 99000;
 	//public static final long ASSETS_RELEASE = 1411308000000l;
-	public static final long ASSETS_RELEASE = 0l;
+	private static final long ASSETS_RELEASE = 0l;
+	private static final long POWFIX_RELEASE = 1455994800000L; // Block Version 3 // 2016-02-20T19:00:00+00:00
+											   
+	public static long getVOTING_RELEASE() {
+		if(Settings.getInstance().isTestnet()) {
+			return Settings.getInstance().getGenesisStamp();
+		}
+		return VOTING_RELEASE;
+	}
+
+	public static long getARBITRARY_TRANSACTIONS_RELEASE() {
+		if(Settings.getInstance().isTestnet()) {
+			return Settings.getInstance().getGenesisStamp();
+		}
+		return ARBITRARY_TRANSACTIONS_RELEASE;
+	}
+
+	public static int getAT_BLOCK_HEIGHT_RELEASE() {
+		if(Settings.getInstance().isTestnet()) {
+			return 1;
+		}
+		return AT_BLOCK_HEIGHT_RELEASE;
+	}
+	
+	public static int getMESSAGE_BLOCK_HEIGHT_RELEASE() {
+		if(Settings.getInstance().isTestnet()) {
+			return 1;
+		}
+		return MESSAGE_BLOCK_HEIGHT_RELEASE;
+	}
+	
+	public static long getASSETS_RELEASE() {
+		if(Settings.getInstance().isTestnet()) {
+			return Settings.getInstance().getGenesisStamp();
+		}
+		return ASSETS_RELEASE;
+	}
+	
+	public static long getPOWFIX_RELEASE() {
+		if(Settings.getInstance().isTestnet()) {
+			return Settings.getInstance().getGenesisStamp();
+		}
+		return POWFIX_RELEASE;
+	}
 	
 	//PROPERTIES LENGTH
 	protected static final int TYPE_LENGTH = 4;
@@ -158,6 +216,34 @@ public abstract class Transaction {
 		return this.feePerByte().compareTo(minFeePerByte) >= 0;
 	}
 	
+	public BigDecimal calcRecommendedFee()
+	{
+		BigDecimal recommendedFee = BigDecimal.valueOf(this.getDataLength()).divide(BigDecimal.valueOf(Settings.getInstance().getMaxBytePerFee()), MathContext.DECIMAL32).setScale(8);
+
+		//security margin
+		recommendedFee = recommendedFee.add(new BigDecimal("0.0000001"));
+		if(recommendedFee.compareTo(MINIMUM_FEE) <= 0)
+		{
+			recommendedFee = MINIMUM_FEE;
+		}
+		else
+		{
+			
+			if(recommendedFee.compareTo(MINIMUM_FEE) > 0 )
+			{
+				recommendedFee = recommendedFee.setScale(0, BigDecimal.ROUND_UP); 
+			}
+			
+		}
+		
+		return recommendedFee.setScale(8);
+	}
+	
+	public Block getParent() {
+		
+		return DBSet.getInstance().getTransactionParentMap().getParent(this.signature);
+	}
+
 	//PARSE/CONVERT
 	
 	@SuppressWarnings("unchecked")
@@ -210,7 +296,7 @@ public abstract class Transaction {
 	
 	//REST
 	
-	public abstract Account getCreator();
+	public abstract PublicKeyAccount getCreator();
 	
 	public abstract List<Account> getInvolvedAccounts();
 		
@@ -238,11 +324,14 @@ public abstract class Transaction {
 	
 	public boolean isConfirmed(DBSet db)
 	{
-		return DBSet.getInstance().getTransactionMap().contains(this);
+		return DBSet.getInstance().getTransactionParentMap().contains(this.getSignature());
 	}
 	
 	public int getConfirmations()
 	{
+		
+		try
+		{
 		//CHECK IF IN TRANSACTIONDATABASE
 		if(DBSet.getInstance().getTransactionMap().contains(this))
 		{
@@ -255,6 +344,23 @@ public abstract class Transaction {
 		
 		//RETURN
 		return 1 + lastBlockHeight - transactionBlockHeight;
+
+		}catch(Exception e)
+		{
+			e.printStackTrace();
+			return 0;
+		}
 	}
 
+	public int getBlockVersion()
+	{
+		// IF ALREADY IN THE BLOCK. CONFIRMED 
+		if(this.isConfirmed())
+		{
+			return DBSet.getInstance().getTransactionParentMap().getParent(this.getSignature()).getVersion();
+		}
+		
+		// IF UNCONFIRMED
+		return Controller.getInstance().getLastBlock().getNextBlockVersion(DBSet.getInstance());	
+	}
 }

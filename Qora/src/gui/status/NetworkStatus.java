@@ -1,24 +1,29 @@
 package gui.status;
 
 import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
-import java.awt.image.BufferedImage;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.Observable;
 import java.util.Observer;
+import java.util.concurrent.TimeUnit;
 
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
+import javax.swing.ToolTipManager;
 
-import utils.ObserverMessage;
 import controller.Controller;
+import qora.block.Block;
+import utils.GUIUtils;
+import utils.ObserverMessage;
 
 @SuppressWarnings("serial")
 public class NetworkStatus extends JLabel implements Observer
 {
 	private ImageIcon noConnectionsIcon;
 	private ImageIcon synchronizingIcon;
+	private ImageIcon walletSynchronizingIcon;
 	private ImageIcon okeIcon;
+	private int currentHeight;
 	
 	public NetworkStatus()
 	{
@@ -27,38 +32,60 @@ public class NetworkStatus extends JLabel implements Observer
 		//CREATE ICONS
 		this.noConnectionsIcon = this.createIcon(Color.RED);
 		this.synchronizingIcon = this.createIcon(Color.ORANGE);
+		this.walletSynchronizingIcon = this.createIcon(Color.YELLOW);
 		this.okeIcon = this.createIcon(Color.GREEN);
-
+		
+		ToolTipManager.sharedInstance().setDismissDelay( (int) TimeUnit.SECONDS.toMillis(5));
+		
+		this.addMouseListener(new MouseAdapter() {
+			public void mouseEntered(MouseEvent mEvt) {
+				if(Controller.getInstance().getStatus() == Controller.STATUS_OK || Controller.getInstance().getStatus() == Controller.STATUS_NO_CONNECTIONS) {
+					setToolTipText("Block height: " + Controller.getInstance().getHeight());
+				} else if(currentHeight < Controller.getInstance().getHeight()) {
+					setToolTipText("Block height: " + currentHeight + "/" + Controller.getInstance().getHeight() + "/" + Controller.getInstance().getMaxPeerHeight());
+				} else {
+					setToolTipText("Block height: " + currentHeight + "/" + Controller.getInstance().getMaxPeerHeight());
+				}
+		}});
 		//LISTEN ON STATUS
-		Controller.getInstance().addObserver(this);			
+		Controller.getInstance().addObserver(this);	
+		//Controller.getInstance().addWalletListener(this);	
 	}
 	
 	private ImageIcon createIcon(Color color)
 	{
-		//CREATE IMAGE
-		BufferedImage image = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g = image.createGraphics();
-        
-        //AA
-        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        
-        //SET COLOR
-        g.setColor(color);
-        
-        //CREATE CIRCLE
-        g.fillOval(0, 0, 16, 16);
-        
-        //SET BACKGROUND
-        g.setBackground(this.getBackground());     
-        
-        //CONVERT TO ICON
-        return new ImageIcon(image);
+		return GUIUtils.createIcon(color, this.getBackground());
 	}
 
 	@Override
 	public void update(Observable arg0, Object arg1) 
 	{
 		ObserverMessage message = (ObserverMessage) arg1;
+		
+		if(message.getType() == ObserverMessage.WALLET_SYNC_STATUS)
+		{
+			currentHeight = (int)message.getValue();
+			if(currentHeight == -1)
+			{
+				this.update(null, new ObserverMessage(
+						ObserverMessage.NETWORK_STATUS, Controller.getInstance().getStatus()));
+				currentHeight = Controller.getInstance().getHeight();
+				return;
+			}
+			
+			this.setIcon(walletSynchronizingIcon);
+			this.setText("Wallet Synchronizing " + 100 * currentHeight/Controller.getInstance().getHeight() + "%");
+		}
+		
+		if(message.getType() == ObserverMessage.ADD_BLOCK_TYPE)
+		{
+			currentHeight = ((Block)message.getValue()).getHeight(); 
+
+			if(Controller.getInstance().getStatus() == Controller.STATUS_SYNCHRONIZING)
+			{
+				this.setText("Synchronizing " + 100 * currentHeight/Controller.getInstance().getMaxPeerHeight() + "%");	
+			}	
+		}
 		
 		if(message.getType() == ObserverMessage.NETWORK_STATUS)
 		{
@@ -74,10 +101,10 @@ public class NetworkStatus extends JLabel implements Observer
 				this.setIcon(synchronizingIcon);
 				this.setText("Synchronizing");
 			}
-			if(status == Controller.STATUS_OKE)
+			if(status == Controller.STATUS_OK)
 			{
 				this.setIcon(okeIcon);
-				this.setText("Oke");
+				this.setText("OK");
 			}
 		}		
 	}

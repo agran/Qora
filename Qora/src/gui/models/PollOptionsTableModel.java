@@ -4,8 +4,10 @@ import java.math.BigDecimal;
 
 import javax.swing.table.AbstractTableModel;
 
+import qora.assets.Asset;
 import qora.voting.Poll;
 import qora.voting.PollOption;
+import utils.NumberAsString;
 
 @SuppressWarnings("serial")
 public class PollOptionsTableModel extends AbstractTableModel
@@ -16,10 +18,12 @@ public class PollOptionsTableModel extends AbstractTableModel
 	
 	private String[] columnNames = {"Name", "Votes", "% of Total"};
 	private Poll poll;
+	private Asset asset;
 	
-	public PollOptionsTableModel(Poll poll)
+	public PollOptionsTableModel(Poll poll, Asset asset)
 	{
 		this.poll = poll;
+		this.asset = asset;
 	}
 	
 	public PollOption getPollOption(int row)
@@ -72,12 +76,12 @@ public class PollOptionsTableModel extends AbstractTableModel
 		
 		case COLUMN_VOTES:
 			
-			return option.getVotes().toPlainString();
+			return NumberAsString.getInstance().numberAsString(option.getVotes(this.asset.getKey()));
 			
 		case COLUMN_PERCENTAGE:
 			
-			BigDecimal total = this.poll.getTotalVotes();
-			BigDecimal votes = option.getVotes();
+			BigDecimal total = this.poll.getTotalVotes(this.asset.getKey());
+			BigDecimal votes = option.getVotes(this.asset.getKey());
 			
 			if(votes.compareTo(BigDecimal.ZERO) == 0)
 			{
@@ -89,5 +93,11 @@ public class PollOptionsTableModel extends AbstractTableModel
 		}
 		
 		return null;
+	}
+	
+	public void setAsset(Asset asset)
+	{
+		this.asset = asset;
+		this.fireTableDataChanged();
 	}
 }

@@ -5,16 +5,24 @@ import java.awt.GridBagLayout;
 import java.awt.Image;
 import java.awt.Insets;
 import java.awt.Toolkit;
-import java.text.DateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
-import javax.swing.*;
+import javax.swing.JCheckBox;
+import javax.swing.JComponent;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.ScrollPaneConstants;
 import javax.swing.border.EmptyBorder;
 
 import qora.crypto.Base58;
 import qora.transaction.RegisterNameTransaction;
+import utils.DateTimeFormat;
+import utils.GZIP;
+import utils.MenuPopupUtil;
 
 @SuppressWarnings("serial")
 public class RegisterNameDetailsFrame extends JFrame
@@ -76,6 +84,7 @@ public class RegisterNameDetailsFrame extends JFrame
 		detailGBC.gridy = 1;
 		JTextField signature = new JTextField(Base58.encode(nameRegistration.getSignature()));
 		signature.setEditable(false);
+		MenuPopupUtil.installContextMenu(signature);
 		this.add(signature, detailGBC);
 		
 		//LABEL REFERENCE
@@ -87,6 +96,7 @@ public class RegisterNameDetailsFrame extends JFrame
 		detailGBC.gridy = 2;
 		JTextField reference = new JTextField(Base58.encode(nameRegistration.getReference()));
 		reference.setEditable(false);
+		MenuPopupUtil.installContextMenu(reference);
 		this.add(reference, detailGBC);
 		
 		//LABEL TIMESTAMP
@@ -96,9 +106,9 @@ public class RegisterNameDetailsFrame extends JFrame
 						
 		//TIMESTAMP
 		detailGBC.gridy = 3;
-		Date date = new Date(nameRegistration.getTimestamp());
-		DateFormat format = DateFormat.getDateTimeInstance();
-		JLabel timestamp = new JLabel(format.format(date));
+		JTextField timestamp = new JTextField(DateTimeFormat.timestamptoString(nameRegistration.getTimestamp()));
+		timestamp.setEditable(false);
+		MenuPopupUtil.installContextMenu(timestamp);
 		this.add(timestamp, detailGBC);
 		
 		//LABEL REGISTRANT
@@ -110,6 +120,7 @@ public class RegisterNameDetailsFrame extends JFrame
 		detailGBC.gridy = 4;
 		JTextField registrant = new JTextField(nameRegistration.getRegistrant().getAddress());
 		registrant.setEditable(false);
+		MenuPopupUtil.installContextMenu(registrant);
 		this.add(registrant, detailGBC);
 		
 		//LABEL OWNER
@@ -121,6 +132,7 @@ public class RegisterNameDetailsFrame extends JFrame
 		detailGBC.gridy = 5;
 		JTextField owner = new JTextField(nameRegistration.getName().getOwner().getAddress());
 		owner.setEditable(false);
+		MenuPopupUtil.installContextMenu(owner);
 		this.add(owner, detailGBC);
 		
 		//LABEL NAME
@@ -132,6 +144,7 @@ public class RegisterNameDetailsFrame extends JFrame
 		detailGBC.gridy = 6;
 		JTextField name = new JTextField(nameRegistration.getName().getName());
 		name.setEditable(false);
+		MenuPopupUtil.installContextMenu(name);
 		this.add(name, detailGBC);		
 		
 		//LABEL VALUE
@@ -141,30 +154,50 @@ public class RegisterNameDetailsFrame extends JFrame
 				
 		//VALUE
 		detailGBC.gridy = 7;
-		JTextArea txtAreaValue = new JTextArea(nameRegistration.getName().getValue());
-      	txtAreaValue.setRows(4);
-      	txtAreaValue.setBorder(name.getBorder());
-      	txtAreaValue.setEditable(false);
-		this.add(txtAreaValue, detailGBC);		
+
+		JTextArea txtareaValue = new JTextArea(GZIP.webDecompress(nameRegistration.getName().getValue()));
+		txtareaValue.setRows(10);
+      	txtareaValue.setColumns(43);
+      	txtareaValue.setEditable(false);
+		MenuPopupUtil.installContextMenu(txtareaValue);
+      	
+      	JScrollPane valueScroll = new JScrollPane(txtareaValue);
+      	valueScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS);
+      	valueScroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+      	this.add(valueScroll, detailGBC);
+      	      	
+      	//LABEL COMPRESSED
+      	labelGBC.gridy = 8;
+      	JLabel compressedLabel = new JLabel("Compressed:");
+      	this.add(compressedLabel, labelGBC);
+      		
+  		//COMPRESSED
+  		detailGBC.gridy = 8;
+  		final JCheckBox compressed = new JCheckBox();
+  		compressed.setSelected(nameRegistration.getName().getValue().startsWith("?gz!"));
+  		compressed.setEnabled(false);
+      	
+  		this.add(compressed, detailGBC);		
 		
 		//LABEL FEE
-		labelGBC.gridy = 8;
+		labelGBC.gridy = 9;
 		JLabel feeLabel = new JLabel("Fee:");
 		this.add(feeLabel, labelGBC);
 						
 		//FEE
-		detailGBC.gridy = 8;
+		detailGBC.gridy = 9;
 		JTextField fee = new JTextField(nameRegistration.getFee().toPlainString());
 		fee.setEditable(false);
+		MenuPopupUtil.installContextMenu(fee);
 		this.add(fee, detailGBC);	
 		
 		//LABEL CONFIRMATIONS
-		labelGBC.gridy = 9;
+		labelGBC.gridy = 10;
 		JLabel confirmationsLabel = new JLabel("Confirmations:");
 		this.add(confirmationsLabel, labelGBC);
 								
 		//CONFIRMATIONS
-		detailGBC.gridy = 9;
+		detailGBC.gridy = 10;
 		JLabel confirmations = new JLabel(String.valueOf(nameRegistration.getConfirmations()));
 		this.add(confirmations, detailGBC);	
 		           

@@ -12,17 +12,18 @@ import ntp.NTP;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
-import com.google.common.primitives.Bytes;
-import com.google.common.primitives.Ints;
-import com.google.common.primitives.Longs;
-
-import database.DBSet;
 import qora.account.Account;
 import qora.account.PrivateKeyAccount;
 import qora.account.PublicKeyAccount;
 import qora.crypto.Crypto;
 import qora.voting.Poll;
 import qora.voting.PollOption;
+
+import com.google.common.primitives.Bytes;
+import com.google.common.primitives.Ints;
+import com.google.common.primitives.Longs;
+
+import database.DBSet;
 
 public class CreatePollTransaction extends Transaction 
 {
@@ -194,7 +195,7 @@ public class CreatePollTransaction extends Transaction
 	public int isValid(DBSet db) 
 	{
 		//CHECK IF RELEASED
-		if(NTP.getTime() < VOTING_RELEASE)
+		if(NTP.getTime() < Transaction.getVOTING_RELEASE())
 		{
 			return NOT_YET_RELEASED;
 		}
@@ -270,7 +271,7 @@ public class CreatePollTransaction extends Transaction
 			return NO_BALANCE;
 		}
 		
-		//CHECK IF REFERENCE IS OKE
+		//CHECK IF REFERENCE IS OK
 		if(!Arrays.equals(this.creator.getLastReference(db), this.reference))
 		{
 			return INVALID_REFERENCE;
@@ -282,7 +283,7 @@ public class CreatePollTransaction extends Transaction
 			return NEGATIVE_FEE;
 		}
 		
-		return VALIDATE_OKE;
+		return VALIDATE_OK;
 	}
 	
 	//PROCESS/ORPHAN
@@ -315,7 +316,7 @@ public class CreatePollTransaction extends Transaction
 	}
 
 	@Override
-	public Account getCreator() 
+	public PublicKeyAccount getCreator() 
 	{
 		return this.creator;
 	}

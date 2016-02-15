@@ -1,5 +1,3 @@
-import gui.Gui;
-
 import java.util.Scanner;
 
 import javax.swing.JOptionPane;
@@ -7,29 +5,31 @@ import javax.swing.UIManager;
 
 import api.ApiClient;
 import controller.Controller;
+import gui.Gui;
+import settings.Settings;
+import utils.BuildTime;
+import utils.SysTray;
 
 public class Start {
 
 	public static void main(String args[])
 	{	
 		boolean cli = false;
-		boolean disableGui = false;
-		boolean disableRpc = false;
+		
 		for(String arg: args)
 		{
-			if(arg.startsWith("-disablerpc"))
-			{
-				disableRpc = true;
-			}
-			
-			if(arg.equals("-disablegui"))
-			{
-				disableGui = true;
-			}
-			
 			if(arg.equals("-cli"))
 			{
 				cli = true;
+			} if(arg.equals("-testnet")) {
+				Settings.getInstance().setGenesisStamp(System.currentTimeMillis());
+			} else if(arg.startsWith("-testnet=") && arg.length() > 9) {
+				try
+				{
+					Settings.getInstance().setGenesisStamp(Long.parseLong(arg.substring(9)));
+				} catch(Exception e) {
+					Settings.getInstance().setGenesisStamp(Settings.DEFAULT_MAINNET_STAMP);
+				}
 			}
 		}
 		
@@ -38,22 +38,29 @@ public class Start {
 			try
 			{
 				//ONE MUST BE ENABLED
-				if(disableGui && disableRpc)
+				if(!Settings.getInstance().isGuiEnabled() && !Settings.getInstance().isRpcEnabled())
 				{
 					throw new Exception("Both gui and rpc cannot be disabled!");
 				}
 				
-				//STARTING NETWORK/BLOCKCHAIN/RPC
-				Controller.getInstance().start(disableRpc);
+				System.out.println("Starting Qora / version: "+ Controller.getInstance().getVersion() + " / buildtime: " + BuildTime.getInstance().getBuildDateTimeString() + " / ...");
 				
-				if(!disableGui)
+				//STARTING NETWORK/BLOCKCHAIN/RPC
+				Controller.getInstance().start();
+				
+				try
 				{
-					//START GUI
-					new Gui();
+						//START GUI
+						if(Gui.getInstance() != null && Settings.getInstance().isSysTrayEnabled())
+						{					
+							SysTray.getInstance().createTrayIcon();
+						}
+				} catch(Exception e) {
+					System.out.println("GUI ERROR: " + e.getMessage());
 				}
-			}
-			catch(Exception e)
-			{
+				
+			} catch(Exception e) {
+				
 				e.printStackTrace();
 				
 				//USE SYSTEM STYLE
@@ -66,7 +73,7 @@ public class Start {
 				//ERROR STARTING
 				System.out.println("STARTUP ERROR: " + e.getMessage());
 				
-				if(!disableGui)
+				if(Gui.isGuiStarted())
 				{
 					JOptionPane.showMessageDialog(null, e.getMessage(), "Startup Error", JOptionPane.ERROR_MESSAGE);
 				}

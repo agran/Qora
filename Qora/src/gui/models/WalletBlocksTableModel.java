@@ -1,16 +1,15 @@
 package gui.models;
-import java.text.DateFormat;
-import java.util.Date;
 import java.util.Observable;
 import java.util.Observer;
 
 import org.mapdb.Fun.Tuple2;
 
+import qora.block.Block;
+import utils.DateTimeFormat;
+import utils.ObserverMessage;
 import controller.Controller;
 import database.SortableList;
 import database.wallet.BlockMap;
-import qora.block.Block;
-import utils.ObserverMessage;
 
 @SuppressWarnings("serial")
 public class WalletBlocksTableModel extends QoraTableModel<Tuple2<String, String>, Block> implements Observer{
@@ -62,41 +61,44 @@ public class WalletBlocksTableModel extends QoraTableModel<Tuple2<String, String
 	@Override
 	public Object getValueAt(int row, int column)
 	{
-		if(blocks == null || blocks.size() - 1 < row)
+		try 
 		{
-			return null;
-		}
-		
-		Block block = this.blocks.get(row).getB();
-		
-		switch(column)
-		{
-		case COLUMN_HEIGHT:
+			if(blocks == null || blocks.size() - 1 < row)
+			{
+				return null;
+			}
 			
-			return block.getHeight();
+			Block block = this.blocks.get(row).getB();
 			
-		case COLUMN_TIMESTAMP:
-			
-			Date date = new Date(block.getTimestamp());
-			DateFormat format = DateFormat.getDateTimeInstance();
-			return format.format(date);
-			
-		case COLUMN_GENERATOR:
-			
-			return block.getGenerator().getAddress();
-			
-		case COLUMN_BASETARGET:
-			
-			return block.getGeneratingBalance();
-			
-		case COLUMN_TRANSACTIONS:
-			
-			return block.getTransactionCount();
-			
-		case COLUMN_FEE:	
-			
-			return block.getTotalFee().toPlainString();
-			
+			switch(column)
+			{
+			case COLUMN_HEIGHT:
+				
+				return block.getHeight();
+				
+			case COLUMN_TIMESTAMP:
+				
+				return DateTimeFormat.timestamptoString(block.getTimestamp());
+				
+			case COLUMN_GENERATOR:
+				
+				return block.getGenerator().getAddress();
+				
+			case COLUMN_BASETARGET:
+				
+				return block.getGeneratingBalance();
+				
+			case COLUMN_TRANSACTIONS:
+				
+				return block.getTransactionCount();
+				
+			case COLUMN_FEE:	
+				
+				return block.getTotalFee().toPlainString();
+				
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 		
 		return null;

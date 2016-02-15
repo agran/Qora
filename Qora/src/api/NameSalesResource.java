@@ -3,6 +3,7 @@ package api;
 import java.math.BigDecimal;
 import java.util.List;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -10,6 +11,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
 import org.json.simple.JSONArray;
@@ -22,6 +24,7 @@ import qora.crypto.Crypto;
 import qora.naming.Name;
 import qora.naming.NameSale;
 import qora.transaction.Transaction;
+import utils.APIUtils;
 import utils.Pair;
 import controller.Controller;
 
@@ -29,10 +32,15 @@ import controller.Controller;
 @Produces(MediaType.APPLICATION_JSON)
 public class NameSalesResource 
 {
+	@Context
+	HttpServletRequest request;
+	
 	@SuppressWarnings("unchecked")
 	@GET
 	public String getNameSales()
 	{
+		APIUtils.askAPICallAllowed("GET namesales", request);
+
 		//CHECK IF WALLET EXISTS
 		if(!Controller.getInstance().doesWalletExists())
 		{
@@ -55,6 +63,8 @@ public class NameSalesResource
 	@Path("/address/{address}")	
 	public String getNameSales(@PathParam("address") String address)
 	{
+		APIUtils.askAPICallAllowed("GET namesales/address/" + address, request);
+
 		//CHECK IF WALLET EXISTS
 		if(!Controller.getInstance().doesWalletExists())
 		{
@@ -85,7 +95,7 @@ public class NameSalesResource
 	
 	@GET
 	@Path("/{name}")	
-	public String getNameSale(@PathParam("name") String nameName)
+	public static String getNameSale(@PathParam("name") String nameName)
 	{	
 		NameSale nameSale = Controller.getInstance().getNameSale(nameName);
 				
@@ -149,8 +159,10 @@ public class NameSalesResource
 			catch(Exception e)
 			{
 				throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_INVALID_FEE);
-			}	
-				
+			}
+
+			APIUtils.askAPICallAllowed("POST namesales/" + nameName + "\n"+x, request);
+
 			//CHECK IF WALLET EXISTS
 			if(!Controller.getInstance().doesWalletExists())
 			{
@@ -162,7 +174,7 @@ public class NameSalesResource
 			{
 				throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_WALLET_LOCKED);
 			}
-				
+
 			//GET NAME
 			Name name = Controller.getInstance().getName(nameName);
 			if(name == null)
@@ -182,7 +194,7 @@ public class NameSalesResource
 				
 			switch(result.getB())
 			{
-			case Transaction.VALIDATE_OKE:
+			case Transaction.VALIDATE_OK:
 				
 				return result.getA().toJson().toJSONString();
 			
@@ -213,6 +225,10 @@ public class NameSalesResource
 			case Transaction.NEGATIVE_FEE:
 					
 				throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_INVALID_FEE);
+				
+			case Transaction.FEE_LESS_REQUIRED:
+				
+				throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_FEE_LESS_REQUIRED);
 					
 			case Transaction.NO_BALANCE:	
 					
@@ -255,7 +271,9 @@ public class NameSalesResource
 			}	
 			
 			NameSale nameSale = Controller.getInstance().getNameSale(nameName);
-			
+
+			APIUtils.askAPICallAllowed("DELETE namesales/"+nameName+"/"+ fee, request );
+
 			//CHECK IF WALLET EXISTS
 			if(!Controller.getInstance().doesWalletExists())
 			{
@@ -267,7 +285,7 @@ public class NameSalesResource
 			{
 				throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_WALLET_LOCKED);
 			}
-			
+
 			//CHECK IF NAME SALE EXISTS
 			if(nameSale == null)
 			{
@@ -286,7 +304,7 @@ public class NameSalesResource
 				
 			switch(result.getB())
 			{
-			case Transaction.VALIDATE_OKE:
+			case Transaction.VALIDATE_OK:
 				
 				return result.getA().toJson().toJSONString();
 			
@@ -313,6 +331,10 @@ public class NameSalesResource
 			case Transaction.NEGATIVE_FEE:
 					
 				throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_INVALID_FEE);
+				
+			case Transaction.FEE_LESS_REQUIRED:
+				
+				throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_FEE_LESS_REQUIRED);
 					
 			case Transaction.NO_BALANCE:	
 					
@@ -357,8 +379,10 @@ public class NameSalesResource
 			catch(Exception e)
 			{
 				throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_INVALID_FEE);
-			}	
-			
+			}
+
+			APIUtils.askAPICallAllowed("POST namesales/buy/" + nameName + "\n" + x, request);
+
 			//CHECK IF WALLET EXISTS
 			if(!Controller.getInstance().doesWalletExists())
 			{
@@ -370,7 +394,7 @@ public class NameSalesResource
 			{
 				throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_WALLET_LOCKED);
 			}
-			
+
 			NameSale nameSale = Controller.getInstance().getNameSale(nameName);
 			
 			//CHECK IF NAME SALE EXISTS
@@ -397,7 +421,7 @@ public class NameSalesResource
 				
 			switch(result.getB())
 			{
-			case Transaction.VALIDATE_OKE:
+			case Transaction.VALIDATE_OK:
 				
 				return result.getA().toJson().toJSONString();
 			
@@ -429,6 +453,10 @@ public class NameSalesResource
 					
 				throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_INVALID_FEE);
 					
+			case Transaction.FEE_LESS_REQUIRED:
+				
+				throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_FEE_LESS_REQUIRED);
+
 			case Transaction.NO_BALANCE:	
 					
 				throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_NO_BALANCE);

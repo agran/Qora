@@ -1,26 +1,34 @@
 package api;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
 import qora.crypto.Base58;
+import utils.APIUtils;
 import controller.Controller;
 
 @Path("wallet")
 @Produces(MediaType.APPLICATION_JSON)
 public class WalletResource {
 
+	@Context
+	HttpServletRequest request;
+	
 	@SuppressWarnings("unchecked")
 	@GET
 	public String getWallet()
 	{
+		APIUtils.askAPICallAllowed("GET wallet", request);
+
 		JSONObject jsonObject = new JSONObject();
 		
 		jsonObject.put("exists", Controller.getInstance().doesWalletExists());
@@ -33,6 +41,9 @@ public class WalletResource {
 	@Path("/seed")
 	public String getSeed()
 	{
+
+		APIUtils.askAPICallAllowed("GET wallet/seed", request);
+
 		//CHECK IF WALLET EXISTS
 		if(!Controller.getInstance().doesWalletExists())
 		{
@@ -44,7 +55,7 @@ public class WalletResource {
 		{
 			throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_WALLET_LOCKED);
 		}
-				
+
 		byte[] seed = Controller.getInstance().exportSeed();
 		return Base58.encode(seed);
 	}
@@ -53,6 +64,8 @@ public class WalletResource {
 	@Path("/synchronize")
 	public String synchronize()
 	{
+		APIUtils.askAPICallAllowed("GET wallet/synchronize", request);
+
 		//CHECK IF WALLET EXISTS
 		if(!Controller.getInstance().doesWalletExists())
 		{
@@ -67,6 +80,8 @@ public class WalletResource {
 	@Path("/lock")
 	public String lock()
 	{
+		APIUtils.askAPICallAllowed("GET wallet/lock", request);
+
 		//CHECK IF WALLET EXISTS
 		if(!Controller.getInstance().doesWalletExists())
 		{
@@ -82,6 +97,8 @@ public class WalletResource {
 	{
 		try
 		{
+			APIUtils.askAPICallAllowed("POST wallet/create " + x, request);
+
 			//READ JSON
 			JSONObject jsonObject = (JSONObject) JSONValue.parse(x);
 			boolean recover = (boolean) jsonObject.get("recover");
@@ -147,6 +164,8 @@ public class WalletResource {
 	@Consumes(MediaType.WILDCARD)	
 	public String unlock(String x)
 	{
+		APIUtils.askAPICallAllowed("POST wallet/unlock " + x, request);
+
 		String password = x;
 		
 		//CHECK IF WALLET EXISTS

@@ -8,6 +8,7 @@ import java.util.List;
 import org.json.simple.JSONObject;
 
 import qora.account.Account;
+import qora.account.PublicKeyAccount;
 import qora.crypto.Base58;
 import qora.crypto.Crypto;
 
@@ -175,8 +176,8 @@ public class GenesisTransaction extends Transaction {
 		{
 			return INVALID_ADDRESS;
 		}
-		
-		return VALIDATE_OKE;
+
+		return VALIDATE_OK;
 	}
 	
 	//PROCESS/ORPHAN
@@ -235,7 +236,7 @@ public class GenesisTransaction extends Transaction {
 	}
 	
 	@Override
-	public Account getCreator()
+	public PublicKeyAccount getCreator()
 	{
 		return null;
 	}

@@ -7,6 +7,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.logging.Logger;
 
 import org.mapdb.Fun.Tuple2;
@@ -14,6 +16,7 @@ import org.mapdb.Fun.Tuple2;
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.Ints;
 
+import at.AT_Transaction;
 import controller.Controller;
 import database.DBSet;
 import database.wallet.SecureWalletDatabase;
@@ -33,12 +36,14 @@ import qora.transaction.CancelSellNameTransaction;
 import qora.transaction.CreateOrderTransaction;
 import qora.transaction.CreatePollTransaction;
 import qora.transaction.IssueAssetTransaction;
+import qora.transaction.PaymentTransaction;
 import qora.transaction.RegisterNameTransaction;
 import qora.transaction.SellNameTransaction;
 import qora.transaction.Transaction;
 import qora.transaction.UpdateNameTransaction;
 import qora.transaction.VoteOnPollTransaction;
 import qora.voting.Poll;
+import utils.AssetsFavorites;
 import utils.ObserverMessage;
 import utils.Pair;
 
@@ -49,6 +54,11 @@ public class Wallet extends Observable implements Observer
 	
 	private WalletDatabase database;
 	private SecureWalletDatabase secureDatabase;
+	
+	private int secondsToUnlock = -1;
+	private Timer lockTimer = new Timer();
+	
+	AssetsFavorites assetsFavorites; 
 	
 	//CONSTRUCTORS
 	
@@ -68,6 +78,18 @@ public class Wallet extends Observable implements Observer
 	
 	//GETTERS/SETTERS
 	
+	public void initiateAssetsFavorites()
+	{
+		if(this.assetsFavorites == null){
+			this.assetsFavorites = new AssetsFavorites();
+		}
+	}
+	
+	public void setSecondsToUnlock(int seconds)
+	{
+		this.secondsToUnlock = seconds;
+	}
+
 	public int getVersion()
 	{
 		return this.database.getVersion();
@@ -91,6 +113,11 @@ public class Wallet extends Observable implements Observer
 	public Account getAccount(String address)
 	{
 		return this.database.getAccountMap().getAccount(address);
+	}
+	
+	public boolean isWalletDatabaseExisting()
+	{
+		return database != null;
 	}
 	
 	public BigDecimal getUnconfirmedBalance(String address)
@@ -238,6 +265,18 @@ public class Wallet extends Observable implements Observer
 		this.database.getAssetFavoritesSet().add(asset.getKey());
 	}
 	
+	public void replaseAssetFavorite()
+	{
+		if(!this.exists())
+		{
+			return;
+		}
+		
+		if(this.assetsFavorites != null) {
+			this.database.getAssetFavoritesSet().replace(this.assetsFavorites.getKeys());	
+		}
+	}
+	
 	public void removeAssetFavorite(Asset asset)
 	{
 		if(!this.exists())
@@ -307,6 +346,8 @@ public class Wallet extends Observable implements Observer
 	    //ADD OBSERVER
 	    Controller.getInstance().addObserver(this);
 	    DBSet.getInstance().getCompletedOrderMap().addObserver(this);
+	    
+	    this.initiateAssetsFavorites();
 	    
 	    return true;
 	}
@@ -396,21 +437,36 @@ public class Wallet extends Observable implements Observer
 		//REPROCESS BLOCKS
 		Block block = new GenesisBlock();
 		this.database.setLastBlockSignature(new byte[]{1,1,1,1,1,1,1,1});
-		do
-		{
-			//UPDATE
-			this.update(this, new ObserverMessage(ObserverMessage.ADD_BLOCK_TYPE, block));
-			
-			if(block.getHeight() % 2000 == 0) 
+		
+		try{
+			Controller.getInstance().setNeedSync(false);
+			Controller.getInstance().isProcessSynchronize = true;
+		
+			do
 			{
-				Logger.getGlobal().info("Synchronize wallet: " + block.getHeight());
-				this.database.commit();
+				//UPDATE
+				this.update(this, new ObserverMessage(ObserverMessage.ADD_BLOCK_TYPE, block));
+				
+				if(block.getHeight() % 2000 == 0) 
+				{
+					Controller.getInstance().walletStatusUpdate(block.getHeight());
+					
+					//Gui.getInstance().
+					
+					Logger.getGlobal().info("Synchronize wallet: " + block.getHeight());
+					this.database.commit();
+				}
+				
+				//LOAD NEXT
+				block = block.getChild();
 			}
+			while(block != null);
 			
-			//LOAD NEXT
-			block = block.getChild();
+		}finally{
+			Controller.getInstance().isProcessSynchronize = false;
+			this.database.commit();
 		}
-		while(block != null);
+		
 		
 		//RESET UNCONFIRMED BALANCE
 		synchronized(accounts)
@@ -421,6 +477,8 @@ public class Wallet extends Observable implements Observer
 			}
 		}
 		Logger.getGlobal().info("Resetted balances");
+
+		Controller.getInstance().walletStatusUpdate(-1);
 		
 		//SET LAST BLOCK
 		
@@ -552,6 +610,19 @@ public class Wallet extends Observable implements Observer
 		this.setChanged();
 		this.notifyObservers(new ObserverMessage(ObserverMessage.WALLET_STATUS, STATUS_UNLOCKED));
 		
+		if(this.secondsToUnlock > 0)
+		{
+			this.lockTimer.cancel(); 
+			this.lockTimer = new Timer();
+			
+			TimerTask action = new TimerTask() {
+		        public void run() {
+		            lock();
+		        }
+		    };
+		    
+		    this.lockTimer.schedule(action, this.secondsToUnlock*1000);
+		}
 		return true;
 	}
 	
@@ -569,6 +640,9 @@ public class Wallet extends Observable implements Observer
 		//NOTIFY
 		this.setChanged();
 		this.notifyObservers(new ObserverMessage(ObserverMessage.WALLET_STATUS, STATUS_LOCKED));
+		
+		this.secondsToUnlock = -1;
+		this.lockTimer.cancel(); 
 		
 		//LOCK SUCCESSFULL
 		return true;
@@ -602,6 +676,10 @@ public class Wallet extends Observable implements Observer
 		    
 		    //SYNCHRONIZE
 		    this.synchronize();
+		    
+		    //NOTIFY
+		    this.setChanged();
+		    this.notifyObservers(new ObserverMessage(ObserverMessage.ADD_ACCOUNT_TYPE, account));
 		    
 		    //RETURN
 		    return account.getAddress();
@@ -639,6 +717,7 @@ public class Wallet extends Observable implements Observer
 		return this.secureDatabase.getSeed();
 	}
 	
+
 	//OBSERVER
 	
 	@Override
@@ -712,6 +791,31 @@ public class Wallet extends Observable implements Observer
 		}
 	}
 	
+	private void processATTransaction( Tuple2< Tuple2< Integer, Integer >, AT_Transaction > atTx )
+	{
+		//CHECK IF WALLET IS OPEN
+		if(!this.exists())
+		{
+			return;
+		}
+				
+		//FOR ALL ACCOUNTS
+		List<Account> accounts = this.getAccounts();	
+		synchronized(accounts)
+		{		
+			for(Account account: accounts)
+			{
+				//CHECK IF INVOLVED
+				if(atTx.b.getRecipient().equalsIgnoreCase( account.getAddress() ))
+				{				
+						BigDecimal unconfirmedBalance = this.getUnconfirmedBalance(account.getAddress()).add( BigDecimal.valueOf(atTx.b.getAmount(),8));
+						this.database.getAccountMap().update(account, unconfirmedBalance);
+					
+				}
+			}
+		}
+	}
+	
 	private void orphanTransaction(Transaction transaction)
 	{
 		//CHECK IF WALLET IS OPEN
@@ -736,6 +840,31 @@ public class Wallet extends Observable implements Observer
 					//UPDATE UNCONFIRMED BALANCE
 					BigDecimal unconfirmedBalance = this.getUnconfirmedBalance(account.getAddress()).subtract(transaction.getAmount(account));
 					this.database.getAccountMap().update(account, unconfirmedBalance);
+				}
+			}
+		}
+	}
+	
+	private void orphanATTransaction(Tuple2<Tuple2<Integer,Integer>, AT_Transaction> atTx)
+	{
+		//CHECK IF WALLET IS OPEN
+		if(!this.exists())
+		{
+			return;
+		}
+				
+		//FOR ALL ACCOUNTS
+		List<Account> accounts = this.getAccounts();	
+		synchronized(accounts)
+		{		
+			for(Account account: accounts)
+			{
+				//CHECK IF INVOLVED
+				if(atTx.b.getRecipient().equalsIgnoreCase( account.getAddress() ))
+				{				
+						BigDecimal unconfirmedBalance = this.getUnconfirmedBalance(account.getAddress()).subtract( BigDecimal.valueOf(atTx.b.getAmount(),8));
+						this.database.getAccountMap().update(account, unconfirmedBalance);
+					
 				}
 			}
 		}
@@ -1129,6 +1258,7 @@ public class Wallet extends Observable implements Observer
 		}
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Override
 	public void update(Observable o, Object arg) 
 	{
@@ -1146,50 +1276,56 @@ public class Wallet extends Observable implements Observer
 			{
 				this.processTransaction(transaction);
 				
+				//SKIP PAYMENT TRANSACTIONS
+				if (transaction instanceof PaymentTransaction)
+				{
+					continue;
+				}
+				
 				//CHECK IF NAME REGISTRATION
-				if(transaction instanceof RegisterNameTransaction)
+				else if(transaction instanceof RegisterNameTransaction)
 				{
 					this.processNameRegistration((RegisterNameTransaction) transaction);
 				}
 				
 				//CHECK IF NAME UPDATE
-				if(transaction instanceof UpdateNameTransaction)
+				else if(transaction instanceof UpdateNameTransaction)
 				{
 					this.processNameUpdate((UpdateNameTransaction) transaction);
 				}
 				
 				//CHECK IF NAME SALE
-				if(transaction instanceof SellNameTransaction)
+				else if(transaction instanceof SellNameTransaction)
 				{
 					this.processNameSale((SellNameTransaction) transaction);
 				}
 				
 				//CHECK IF NAME SALE
-				if(transaction instanceof CancelSellNameTransaction)
+				else if(transaction instanceof CancelSellNameTransaction)
 				{
 					this.processCancelNameSale((CancelSellNameTransaction) transaction);
 				}
 				
 				//CHECK IF NAME PURCHASE
-				if(transaction instanceof BuyNameTransaction)
+				else if(transaction instanceof BuyNameTransaction)
 				{
 					this.processNamePurchase((BuyNameTransaction) transaction);
 				}
 				
 				//CHECK IF POLL CREATION
-				if(transaction instanceof CreatePollTransaction)
+				else if(transaction instanceof CreatePollTransaction)
 				{
 					this.processPollCreation((CreatePollTransaction) transaction);
 				}
 				
 				//CHECK IF POLL VOTE
-				if(transaction instanceof VoteOnPollTransaction)
+				else if(transaction instanceof VoteOnPollTransaction)
 				{
 					this.processPollVote((VoteOnPollTransaction) transaction);
 				}
 				
 				//CHECK IF ASSET ISSUE
-				if(transaction instanceof IssueAssetTransaction)
+				else if(transaction instanceof IssueAssetTransaction)
 				{
 					this.processAssetIssue((IssueAssetTransaction) transaction);
 				}
@@ -1201,45 +1337,51 @@ public class Wallet extends Observable implements Observer
 				}*/
 				
 				//CHECK IF ORDER CANCEL
-				if(transaction instanceof CancelOrderTransaction)
+				else if(transaction instanceof CancelOrderTransaction)
 				{
 					this.processOrderCancel((CancelOrderTransaction) transaction);
 				}
 			}
 		}
 		
-		if(message.getType() == ObserverMessage.ADD_TRANSACTION_TYPE)
+		else if(message.getType() == ObserverMessage.ADD_TRANSACTION_TYPE)
 		{	
 			Transaction transaction = (Transaction) message.getValue();
 				
 			this.processTransaction(transaction);
 			
+			//CHECK IF PAYMENT
+			if (transaction instanceof PaymentTransaction)
+			{
+				
+			}
+			
 			//CHECK IF NAME REGISTRATION
-			if(transaction instanceof RegisterNameTransaction)
+			else if(transaction instanceof RegisterNameTransaction)
 			{
 				this.processNameRegistration((RegisterNameTransaction) transaction);
 			}
 			
 			//CHECK IF POLL CREATION
-			if(transaction instanceof CreatePollTransaction)
+			else if(transaction instanceof CreatePollTransaction)
 			{
 				this.processPollCreation((CreatePollTransaction) transaction);
 			}
 			
 			//CHECK IF ASSET ISSUE
-			if(transaction instanceof IssueAssetTransaction)
+			else if(transaction instanceof IssueAssetTransaction)
 			{
 				this.processAssetIssue((IssueAssetTransaction) transaction);
 			}
 			
 			//CHECK IF ORDER CREATION
-			if(transaction instanceof CreateOrderTransaction)
+			else if(transaction instanceof CreateOrderTransaction)
 			{
 				this.processOrderCreation((CreateOrderTransaction) transaction);
 			}
 		}
 		
-		if(message.getType() == ObserverMessage.REMOVE_BLOCK_TYPE)
+		else if(message.getType() == ObserverMessage.REMOVE_BLOCK_TYPE)
 		{
 			Block block = (Block) message.getValue();
 				
@@ -1258,94 +1400,109 @@ public class Wallet extends Observable implements Observer
 				}
 				
 				//CHECK IF NAME UPDATE
-				if(transaction instanceof UpdateNameTransaction)
+				else if(transaction instanceof UpdateNameTransaction)
 				{
 					this.orphanNameUpdate((UpdateNameTransaction) transaction);
 				}
 				
 				//CHECK IF NAME SALE
-				if(transaction instanceof SellNameTransaction)
+				else if(transaction instanceof SellNameTransaction)
 				{
 					this.orphanNameSale((SellNameTransaction) transaction);
 				}
 				
 				//CHECK IF CANCEL NAME SALE
-				if(transaction instanceof CancelSellNameTransaction)
+				else if(transaction instanceof CancelSellNameTransaction)
 				{
 					this.orphanCancelNameSale((CancelSellNameTransaction) transaction);
 				}
 				
 				//CHECK IF CANCEL NAME SALE
-				if(transaction instanceof BuyNameTransaction)
+				else if(transaction instanceof BuyNameTransaction)
 				{
 					this.orphanNamePurchase((BuyNameTransaction) transaction);
 				}
 				
 				//CHECK IF POLL CREATION
-				if(transaction instanceof CreatePollTransaction)
+				else if(transaction instanceof CreatePollTransaction)
 				{
 					this.orphanPollCreation((CreatePollTransaction) transaction);
 				}
 				
 				//CHECK IF POLL VOTE
-				if(transaction instanceof VoteOnPollTransaction)
+				else if(transaction instanceof VoteOnPollTransaction)
 				{
 					this.orphanPollVote((VoteOnPollTransaction) transaction);
 				}
 				
 				//CHECK IF ASSET ISSUE
-				if(transaction instanceof IssueAssetTransaction)
+				else if(transaction instanceof IssueAssetTransaction)
 				{
 					this.orphanAssetIssue((IssueAssetTransaction) transaction);
 				}
 				
 				//CHECK IF ORDER CREATION
-				if(transaction instanceof CreateOrderTransaction)
+				else if(transaction instanceof CreateOrderTransaction)
 				{
 					this.orphanOrderCreation((CreateOrderTransaction) transaction);
 				}
 				
 				//CHECK IF ORDER CANCEL
-				if(transaction instanceof CancelOrderTransaction)
+				else if(transaction instanceof CancelOrderTransaction)
 				{
 					this.orphanOrderCancel((CancelOrderTransaction) transaction);
 				}
 			}
 		}
 		
-		if(message.getType() == ObserverMessage.REMOVE_TRANSACTION_TYPE)
+		else if(message.getType() == ObserverMessage.REMOVE_TRANSACTION_TYPE)
 		{	
 			Transaction transaction = (Transaction) message.getValue();
 				
 			this.orphanTransaction(transaction);
-					
+				
+			//CHECK IF PAYMENT
+			if (transaction instanceof PaymentTransaction)
+			{
+				
+			}
 			//CHECK IF NAME REGISTRATION
-			if(transaction instanceof RegisterNameTransaction)
+			else if(transaction instanceof RegisterNameTransaction)
 			{
 				this.orphanNameRegistration((RegisterNameTransaction) transaction);
 			}
 			
 			//CHECK IF POLL CREATION
-			if(transaction instanceof CreatePollTransaction)
+			else if(transaction instanceof CreatePollTransaction)
 			{
 				this.orphanPollCreation((CreatePollTransaction) transaction);
 			}
 			
 			//CHECK IF ASSET ISSUE
-			if(transaction instanceof IssueAssetTransaction)
+			else if(transaction instanceof IssueAssetTransaction)
 			{
 				this.orphanAssetIssue((IssueAssetTransaction) transaction);
 			}
 			
 			//CHECK IF ORDER CREATION
-			if(transaction instanceof CreateOrderTransaction)
+			else if(transaction instanceof CreateOrderTransaction)
 			{
 				this.orphanOrderCreation((CreateOrderTransaction) transaction);
 			}
 		}
 		
+		else if (message.getType() == ObserverMessage.ADD_AT_TX_TYPE)
+		{
+			this.processATTransaction( (Tuple2<Tuple2<Integer, Integer>, AT_Transaction>) message.getValue() );
+		}
+		
+		else if (message.getType() == ObserverMessage.REMOVE_AT_TX)
+		{
+			this.orphanATTransaction( (Tuple2<Tuple2<Integer, Integer>, AT_Transaction>) message.getValue() );
+		}
+		
 		//ADD ORDER
-		if(message.getType() == ObserverMessage.ADD_ORDER_TYPE || message.getType() == ObserverMessage.REMOVE_ORDER_TYPE)
+		else if(message.getType() == ObserverMessage.ADD_ORDER_TYPE || message.getType() == ObserverMessage.REMOVE_ORDER_TYPE)
 		{
 			this.addOrder((Order) message.getValue());
 		}
@@ -1379,4 +1536,9 @@ public class Wallet extends Observable implements Observer
 		}
 		
 	}	
+	
+	public byte[] getLastBlockSignature()
+	{
+		return this.database.getLastBlockSignature();
+	}
 }

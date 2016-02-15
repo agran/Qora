@@ -1,16 +1,15 @@
 package gui.models;
 
-import java.text.DateFormat;
-import java.util.Date;
-
 import java.util.Observable;
 import java.util.Observer;
 
+import qora.transaction.Transaction;
+import utils.DateTimeFormat;
+import utils.NumberAsString;
+import utils.ObserverMessage;
 import controller.Controller;
 import database.SortableList;
 import database.TransactionMap;
-import qora.transaction.Transaction;
-import utils.ObserverMessage;
 
 @SuppressWarnings("serial")
 public class TransactionsTableModel extends QoraTableModel<byte[], Transaction> implements Observer {
@@ -22,7 +21,7 @@ public class TransactionsTableModel extends QoraTableModel<byte[], Transaction> 
 	private SortableList<byte[], Transaction> transactions;
 	
 	private String[] columnNames = {"Timestamp", "Type", "Fee"};
-	private String[] transactionTypes = {"", "Genesis", "Payment", "Name Registration", "Name Update", "Name Sale", "Cancel Name Sale", "Name Purchase", "Poll Creation", "Poll Vote", "Arbitrary Transaction", "Asset Issue", "Asset Transfer", "Order Creation", "Cancel Order", "Multi Payment"};
+	private String[] transactionTypes = {"", "Genesis", "Payment", "Name Registration", "Name Update", "Name Sale", "Cancel Name Sale", "Name Purchase", "Poll Creation", "Poll Vote", "Arbitrary Transaction", "Asset Issue", "Asset Transfer", "Order Creation", "Cancel Order", "Multi Payment", "Deploy AT", "Message Transaction"};
 
 	public TransactionsTableModel()
 	{
@@ -66,32 +65,36 @@ public class TransactionsTableModel extends QoraTableModel<byte[], Transaction> 
 	@Override
 	public Object getValueAt(int row, int column) 
 	{
-		if(this.transactions == null || this.transactions.size() -1 < row)
+		try
 		{
+			if(this.transactions == null || this.transactions.size() -1 < row)
+			{
+				return null;
+			}
+			
+			Transaction transaction = this.transactions.get(row).getB();
+			
+			switch(column)
+			{
+			case COLUMN_TIMESTAMP:
+				
+				return DateTimeFormat.timestamptoString(transaction.getTimestamp());
+				
+			case COLUMN_TYPE:
+				
+				return this.transactionTypes[transaction.getType()];
+				
+			case COLUMN_FEE:
+				
+				return NumberAsString.getInstance().numberAsString(transaction.getFee());		
+			}
+			
+			return null;
+			
+		} catch (Exception e) {
+			e.printStackTrace();
 			return null;
 		}
-		
-		Transaction transaction = this.transactions.get(row).getB();
-		
-		switch(column)
-		{
-		case COLUMN_TIMESTAMP:
-			
-			Date date = new Date(transaction.getTimestamp());
-			DateFormat format = DateFormat.getDateTimeInstance();
-			return format.format(date);
-			
-		case COLUMN_TYPE:
-			
-			return this.transactionTypes[transaction.getType()];
-			
-		case COLUMN_FEE:
-			
-			return transaction.getFee().toPlainString();		
-		}
-		
-		return null;
-		
 	}
 
 	@Override

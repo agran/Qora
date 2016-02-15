@@ -7,6 +7,10 @@ import java.util.Observer;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 
+import qora.web.NameStorageMap;
+import qora.web.OrphanNameStorageHelperMap;
+import qora.web.OrphanNameStorageMap;
+import qora.web.SharedPostsMap;
 import controller.Controller;
 import settings.Settings;
 import utils.ObserverMessage;
@@ -25,6 +29,15 @@ public class DBSet implements Observer, IDB {
 	private PeerMap peerMap;
 	private TransactionMap transactionMap;
 	private NameMap nameMap;
+	private NameStorageMap nameStorageMap;
+	private OrphanNameStorageMap orphanNameStorageMap;
+	private OrphanNameStorageHelperMap orphanNameStorageHelperMap;
+	private SharedPostsMap sharedPostsMap;
+	private PostCommentMap postCommentMap;
+	private CommentPostMap commentPostMap;
+	private LocalDataMap localDataMap;
+	private BlogPostMap blogPostMap;
+	private HashtagPostMap hashtagPostMap;
 	private TransactionParentMap transactionParentMap;
 	private NameExchangeMap nameExchangeMap;
 	private UpdateNameMap updateNameMap;
@@ -36,6 +49,10 @@ public class DBSet implements Observer, IDB {
 	private OrderMap orderMap;
 	private CompletedOrderMap completedOrderMap;
 	private TradeMap tradeMap;
+	private ATMap atMap;
+	private ATStateMap atStateMap;
+	private ATTransactionMap atTransactionMap;
+	private TransactionFinalMap transactionFinalMap;
 	
 	private DB database;
 	private int actions;
@@ -44,23 +61,29 @@ public class DBSet implements Observer, IDB {
 	{
 		if(instance == null)
 		{
-			//OPEN DB
-			File dbFile = new File(Settings.getInstance().getDataDir(), "data.dat");
-			dbFile.getParentFile().mkdirs();
-			
-			//CREATE DATABASE	
-			DB database = DBMaker.newFileDB(dbFile)
-					.closeOnJvmShutdown()
-					.cacheSize(2048)
-					.checksumEnable()
-					.mmapFileEnableIfSupported()
-					.make();
-			
-			//CREATE INSTANCE
-			instance = new DBSet(database);
+			reCreateDatabase();
 		}
 		
 		return instance;
+	}
+
+	public static void reCreateDatabase() {
+		//OPEN DB
+		File dbFile = new File(Settings.getInstance().getDataDir(), "data.dat");
+		dbFile.getParentFile().mkdirs();
+		
+		//CREATE DATABASE	
+		DB database = DBMaker.newFileDB(dbFile)
+				.closeOnJvmShutdown()
+				.cacheSize(2048)
+				.checksumEnable()
+				.mmapFileEnableIfSupported()
+				.make();
+		
+		//CREATE INSTANCE
+		instance = new DBSet(database);
+		
+		
 	}	
 	
 	public static DBSet createEmptyDatabaseSet()
@@ -73,33 +96,53 @@ public class DBSet implements Observer, IDB {
 	
 	public DBSet(DB database)
 	{
-		this.database = database;
-		this.actions = 0;
-		
-		this.balanceMap = new BalanceMap(this, database);
-		this.blockMap = new BlockMap(this, database);
-		this.childMap = new ChildMap(this, database);
-		this.heightMap = new HeightMap(this, database);
-		this.referenceMap = new ReferenceMap(this, database);
-		this.peerMap = new PeerMap(this, database);
-		this.transactionMap = new TransactionMap(this, database);
-		this.nameMap = new NameMap(this, database);
-		this.transactionParentMap = new TransactionParentMap(this, database);
-		this.nameExchangeMap = new NameExchangeMap(this, database);
-		this.updateNameMap = new UpdateNameMap(this, database);
-		this.cancelSellNameMap = new CancelSellNameMap(this, database);
-		this.pollMap = new PollMap(this, database);
-		this.voteOnPollMap = new VoteOnPollMap(this, database);
-		this.assetMap = new AssetMap(this, database);
-		this.issueAssetMap = new IssueAssetMap(this, database);
-		this.orderMap = new OrderMap(this, database);
-		this.completedOrderMap = new CompletedOrderMap(this, database);
-		this.tradeMap = new TradeMap(this, database);
+		try {
+			this.database = database;
+			this.actions = 0;
+			
+			this.balanceMap = new BalanceMap(this, database);
+			this.transactionFinalMap = new TransactionFinalMap(this, database);
+			this.blockMap = new BlockMap(this, database);
+			this.childMap = new ChildMap(this, database);
+			this.heightMap = new HeightMap(this, database);
+			this.referenceMap = new ReferenceMap(this, database);
+			this.peerMap = new PeerMap(this, database);
+			this.transactionMap = new TransactionMap(this, database);
+			this.nameMap = new NameMap(this, database);
+			this.nameStorageMap = new NameStorageMap(this, database);
+			this.orphanNameStorageMap = new OrphanNameStorageMap(this, database);
+			this.orphanNameStorageHelperMap = new OrphanNameStorageHelperMap(this, database);
+			this.sharedPostsMap = new SharedPostsMap(this, database);
+			this.postCommentMap = new PostCommentMap(this, database);
+			this.commentPostMap = new CommentPostMap(this, database);
+			this.localDataMap = new LocalDataMap(this, database);
+			this.blogPostMap = new BlogPostMap(this, database);
+			this.hashtagPostMap = new HashtagPostMap(this, database);
+			this.transactionParentMap = new TransactionParentMap(this, database);
+			this.nameExchangeMap = new NameExchangeMap(this, database);
+			this.updateNameMap = new UpdateNameMap(this, database);
+			this.cancelSellNameMap = new CancelSellNameMap(this, database);
+			this.pollMap = new PollMap(this, database);
+			this.voteOnPollMap = new VoteOnPollMap(this, database);
+			this.assetMap = new AssetMap(this, database);
+			this.issueAssetMap = new IssueAssetMap(this, database);
+			this.orderMap = new OrderMap(this, database);
+			this.completedOrderMap = new CompletedOrderMap(this, database);
+			this.tradeMap = new TradeMap(this, database);
+			this.atMap = new ATMap(this,database);
+			this.atStateMap = new ATStateMap(this,database);
+			this.atTransactionMap = new ATTransactionMap(this,database);
+			
+		} catch (Throwable e) {
+			this.close();
+			throw e;
+		}
 	}
 	
 	protected DBSet(DBSet parent)
 	{
 		this.balanceMap = new BalanceMap(parent.balanceMap);
+		this.transactionFinalMap = new TransactionFinalMap(parent.transactionFinalMap);
 		this.blockMap = new BlockMap(parent.blockMap);
 		this.childMap = new ChildMap(this.blockMap, parent.childMap);
 		this.heightMap = new HeightMap(parent.heightMap);
@@ -107,6 +150,15 @@ public class DBSet implements Observer, IDB {
 		this.peerMap = new PeerMap(parent.peerMap);
 		this.transactionMap = new TransactionMap(parent.transactionMap);		
 		this.nameMap = new NameMap(parent.nameMap);
+		this.nameStorageMap = new NameStorageMap(parent.nameStorageMap);
+		this.orphanNameStorageMap = new OrphanNameStorageMap(parent.orphanNameStorageMap);
+		this.sharedPostsMap = new SharedPostsMap(parent.sharedPostsMap);
+		this.postCommentMap = new PostCommentMap(parent.postCommentMap);
+		this.commentPostMap = new CommentPostMap(parent.commentPostMap);
+		this.orphanNameStorageHelperMap = new OrphanNameStorageHelperMap(parent.orphanNameStorageHelperMap);
+		this.localDataMap = new LocalDataMap(parent.localDataMap);
+		this.blogPostMap = new BlogPostMap(parent.blogPostMap);
+		this.hashtagPostMap = new HashtagPostMap(parent.hashtagPostMap);
 		this.transactionParentMap = new TransactionParentMap(this.blockMap, parent.transactionParentMap);
 		this.nameExchangeMap = new NameExchangeMap(parent.nameExchangeMap);
 		this.updateNameMap = new UpdateNameMap(parent.updateNameMap);
@@ -118,6 +170,9 @@ public class DBSet implements Observer, IDB {
 		this.orderMap = new OrderMap(parent.orderMap);
 		this.completedOrderMap = new CompletedOrderMap(parent.completedOrderMap);
 		this.tradeMap = new TradeMap(parent.tradeMap);
+		this.atMap = new ATMap(parent.atMap);
+		this.atStateMap = new ATStateMap(parent.atStateMap);
+		this.atTransactionMap = new ATTransactionMap(parent.atTransactionMap);
 	}
 	
 	public void reset() {
@@ -126,19 +181,32 @@ public class DBSet implements Observer, IDB {
 		this.heightMap.reset();
 		this.referenceMap.reset();
 		this.peerMap.reset();
+		this.transactionFinalMap.reset();
 		this.transactionMap.reset();
 		this.nameMap.reset();
+		this.nameStorageMap.reset();
+		this.orphanNameStorageMap.reset();
+		this.orphanNameStorageHelperMap.reset();
+		this.sharedPostsMap.reset();
+		this.commentPostMap.reset();
+		this.postCommentMap.reset();
+		this.localDataMap.reset();
+		this.blogPostMap.reset();
+		this.hashtagPostMap.reset();
 		this.transactionParentMap.reset();
 		this.nameExchangeMap.reset();
 		this.updateNameMap.reset();
 		this.cancelSellNameMap.reset();
 		this.pollMap.reset();
 		this.voteOnPollMap.reset();
-		this.assetMap.reset();
-		this.issueAssetMap.reset();
+		this.tradeMap.reset();
 		this.orderMap.reset();
 		this.completedOrderMap.reset();
-		this.tradeMap.reset();
+		this.issueAssetMap.reset();
+		this.assetMap.reset();
+		this.atMap.reset();
+		this.atStateMap.reset();
+		this.atTransactionMap.reset();
 	}
 	
 	public BalanceMap getBalanceMap() 
@@ -176,9 +244,54 @@ public class DBSet implements Observer, IDB {
 		return this.transactionMap;
 	}
 	
+	public TransactionFinalMap getTransactionFinalMap()
+	{
+		return this.transactionFinalMap;
+	}
+	
 	public NameMap getNameMap()
 	{
 		return this.nameMap;
+	}
+	
+	public NameStorageMap getNameStorageMap()
+	{
+		return this.nameStorageMap;
+	}
+	public OrphanNameStorageMap getOrphanNameStorageMap()
+	{
+		return this.orphanNameStorageMap;
+	}
+	public SharedPostsMap getSharedPostsMap()
+	{
+		return this.sharedPostsMap;
+	}
+	public PostCommentMap getPostCommentMap()
+	{
+		return this.postCommentMap;
+	}
+	public CommentPostMap getCommentPostMap()
+	{
+		return this.commentPostMap;
+	}
+	
+	public OrphanNameStorageHelperMap getOrphanNameStorageHelperMap()
+	{
+		return this.orphanNameStorageHelperMap;
+	}
+	
+	public LocalDataMap getLocalDataMap()
+	{
+		return this.localDataMap;
+	}
+	
+	public BlogPostMap getBlogPostMap()
+	{
+		return this.blogPostMap;
+	}
+	public HashtagPostMap getHashtagPostMap()
+	{
+		return this.hashtagPostMap;
 	}
 	
 	public TransactionParentMap getTransactionParentMap()
@@ -235,6 +348,21 @@ public class DBSet implements Observer, IDB {
 	{
 		return this.tradeMap;
 	}
+
+	public ATMap getATMap()
+	{
+		return this.atMap;
+	}
+	
+	public ATStateMap getATStateMap()
+	{
+		return this.atStateMap;
+	}
+	
+	public ATTransactionMap getATTransactionMap()
+	{
+		return this.atTransactionMap;
+	}
 	
 	public DBSet fork()
 	{
@@ -251,6 +379,11 @@ public class DBSet implements Observer, IDB {
 				this.database.close();
 			}
 		}
+	}
+	
+	public boolean isStoped()
+	{
+		return this.database.isClosed();
 	}
 	
 	public void commit()

@@ -1,5 +1,6 @@
 package qora;
 
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -8,6 +9,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Observable;
+import java.util.Observer;
+
 import ntp.NTP;
 import qora.account.PrivateKeyAccount;
 import qora.block.Block;
@@ -15,7 +19,11 @@ import qora.block.BlockFactory;
 import qora.crypto.Crypto;
 import qora.transaction.Transaction;
 import settings.Settings;
+import utils.ObserverMessage;
 import utils.TransactionFeeComparator;
+import at.AT_Block;
+import at.AT_Constants;
+import at.AT_Controller;
 
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.Longs;
@@ -23,7 +31,7 @@ import com.google.common.primitives.Longs;
 import controller.Controller;
 import database.DBSet;
 
-public class BlockGenerator extends Thread
+public class BlockGenerator extends Thread implements Observer
 {	
 	public static final int RETARGET = 10;
 	public static final long MIN_BALANCE = 1l;
@@ -31,9 +39,44 @@ public class BlockGenerator extends Thread
 	public static final int MIN_BLOCK_TIME = 1 * 60;
 	public static final int MAX_BLOCK_TIME = 5 * 60;
 	
+	
+	public enum ForgingStatus {
+	    
+		FORGING_DISABLED(0,"Forging disabled" ),
+		FORGING_ENABLED(1,"Forging enabled"),
+		FORGING(2,"Forging");
+		
+		 private final int statuscode;
+		private String name;
+
+		 ForgingStatus(int status, String name) {
+			 statuscode = status;
+			 this.name = name;
+		  }
+
+		public int getStatuscode() {
+			return statuscode;
+		}
+
+		public String getName() {
+			return name;
+		}
+
+	    
+	}
+	
+    public ForgingStatus getForgingStatus()
+    {
+        return forgingStatus;
+    }
+	
 	private Map<PrivateKeyAccount, Block> blocks;
 	private Block solvingBlock;
 	private List<PrivateKeyAccount> cachedAccounts;
+	
+	private ForgingStatus forgingStatus = ForgingStatus.FORGING_DISABLED;
+	private boolean walletOnceUnlocked = false;;
+	
 	
 	public BlockGenerator()
 	{
@@ -41,6 +84,31 @@ public class BlockGenerator extends Thread
 		{
 			this.cachedAccounts = new ArrayList<PrivateKeyAccount>();
 		}
+		
+		addObserver();
+	}
+
+	public void addObserver() {
+		new Thread()
+		{
+			@Override
+			public void run() {
+				
+				//WE HAVE TO WAIT FOR THE WALLET TO ADD THAT LISTENER.
+				while(!Controller.getInstance().doesWalletExists() || !Controller.getInstance().doesWalletDatabaseExists())
+				{
+					try {
+						Thread.sleep(250);
+					} catch (InterruptedException e) {
+//						does not matter
+					}
+				}
+				
+				Controller.getInstance().addWalletListener(BlockGenerator.this);
+				syncForgingStatus();
+			}
+		}.start();
+		Controller.getInstance().addObserver(this);
 	}
 	
 	public void addUnconfirmedTransaction(Transaction transaction)
@@ -83,10 +151,23 @@ public class BlockGenerator extends Thread
 		}
 	}
 	
+	private void setForgingStatus(ForgingStatus status)
+	{
+		if(forgingStatus != status)
+		{
+			forgingStatus = status;
+			Controller.getInstance().forgingStatusChanged(forgingStatus);
+		}
+	}
+	
+	
 	public void run()
 	{
 		while(true)
 		{
+			if(DBSet.getInstance().isStoped())
+				continue;
+			
 			//CHECK IF WE ARE UPTODATE
 			if(!Controller.getInstance().isUpToDate())
 			{
@@ -94,7 +175,7 @@ public class BlockGenerator extends Thread
 			}
 			
 			//CHECK IF WE HAVE CONNECTIONS
-			if(Controller.getInstance().getStatus() == Controller.STATUS_OKE)
+			if(Controller.getInstance().getStatus() == Controller.STATUS_OK)
 			{
 				//GET LAST BLOCK
 				byte[] lastBlockSignature = DBSet.getInstance().getBlockMap().getLastBlockSignature();
@@ -113,7 +194,7 @@ public class BlockGenerator extends Thread
 				if(Controller.getInstance().doesWalletExists() /*&& Controller.getInstance().isWalletUnlocked()*/)
 				{
 					//PREVENT CONCURRENT MODIFY EXCEPTION
-					List<PrivateKeyAccount> knownAccounts = this.getKnownAccounts();							
+					List<PrivateKeyAccount> knownAccounts = this.getKnownAccounts();
 					synchronized(knownAccounts)
 					{
 						for(PrivateKeyAccount account: knownAccounts)
@@ -196,13 +277,26 @@ public class BlockGenerator extends Thread
 		{
 			return null;
 		}
-		
+
 		//CALCULATE SIGNATURE
 		byte[] signature = this.calculateSignature(db, block, account);
-		
+
+		//DETERMINE BLOCK VERSION
+		int version = block.getNextBlockVersion(db);
+
 		//CALCULATE HASH
-		byte[] hash = Crypto.getInstance().digest(signature);
-			
+		byte[] hash;
+		if (version < 3)
+		{
+			hash = Crypto.getInstance().digest(signature);
+		}
+		else
+		{
+			//newSig = sha256(prevSig || pubKey)
+			byte[] data = Bytes.concat(block.getSignature(), account.getPublicKey());
+			hash = Crypto.getInstance().digest(data);
+		}
+
 		//CONVERT HASH TO BIGINT
 		BigInteger hashValue = new BigInteger(1, hash);
 		
@@ -233,9 +327,17 @@ public class BlockGenerator extends Thread
 		}
 		
 		//CREATE NEW BLOCK
-		int version = 1;
-		Block newBlock = BlockFactory.getInstance().create(version, block.getSignature(), timestamp.longValue(), getNextBlockGeneratingBalance(db, block), account, signature);
-		
+		Block newBlock;
+		if ( version > 1 )
+		{
+			AT_Block atBlock = AT_Controller.getCurrentBlockATs( AT_Constants.getInstance().MAX_PAYLOAD_FOR_BLOCK( block.getHeight() ) , block.getHeight() + 1 );
+			byte[] atBytes = atBlock.getBytesForBlock();
+			newBlock = BlockFactory.getInstance().create(version, block.getSignature(), timestamp.longValue(), getNextBlockGeneratingBalance(db, block), account, signature, atBytes, atBlock.getTotalFees());
+		}
+		else
+		{
+			newBlock = BlockFactory.getInstance().create(version, block.getSignature(), timestamp.longValue(), getNextBlockGeneratingBalance(db, block), account, signature);
+		}
 		return newBlock;
 	}
 	
@@ -297,25 +399,33 @@ public class BlockGenerator extends Thread
 				//CHECK TRANSACTION TIMESTAMP AND DEADLINE
 				if(transaction.getTimestamp() <= block.getTimestamp() && transaction.getDeadline() > block.getTimestamp())
 				{
-					//CHECK IF VALID
-					if(transaction.isValid(newBlockDb) == Transaction.VALIDATE_OKE)
-					{
-						//CHECK IF ENOUGH ROOM
-						if(totalBytes + transaction.getDataLength() <= Block.MAX_TRANSACTION_BYTES)
+					try{
+						//CHECK IF VALID
+						if(transaction.isValid(newBlockDb) == Transaction.VALIDATE_OK)
 						{
-							//ADD INTO BLOCK
-							block.addTransaction(transaction);
-										
-							//REMOVE FROM LIST
-							orderedTransactions.remove(transaction);
-										
-							//PROCESS IN NEWBLOCKDB
-							transaction.process(newBlockDb);
-										
-							//TRANSACTION PROCESSES
-							transactionProcessed = true;
-							break;
+							//CHECK IF ENOUGH ROOM
+							if(totalBytes + transaction.getDataLength() <= Block.MAX_TRANSACTION_BYTES)
+							{
+								//ADD INTO BLOCK
+								block.addTransaction(transaction);
+											
+								//REMOVE FROM LIST
+								orderedTransactions.remove(transaction);
+											
+								//PROCESS IN NEWBLOCKDB
+								transaction.process(newBlockDb);
+											
+								//TRANSACTION PROCESSES
+								transactionProcessed = true;
+								break;
+							}
 						}
+					}catch(Exception e){
+                        e.printStackTrace();
+                        //REMOVE FROM LIST
+                        orderedTransactions.remove(transaction);
+                        transactionProcessed = true;
+                        break;                    
 					}
 				}
 						
@@ -394,4 +504,45 @@ public class BlockGenerator extends Thread
 		
 		return generatingBalance;
 	}
+
+	@Override
+	public void update(Observable arg0, Object arg1) {
+	ObserverMessage message = (ObserverMessage) arg1;
+		
+		if(message.getType() == ObserverMessage.WALLET_STATUS || message.getType() == ObserverMessage.NETWORK_STATUS)
+		{
+			//WALLET ONCE UNLOCKED? WITHOUT UNLOCKING FORGING DISABLED 
+			if(!walletOnceUnlocked &&  message.getType() == ObserverMessage.WALLET_STATUS)
+			{
+				walletOnceUnlocked = true;
+			}
+			
+			
+				if(walletOnceUnlocked)
+				{
+					// WALLET UNLOCKED OR GENERATORCACHING TRUE
+					syncForgingStatus();
+				}
+		}
+		
+	}
+	
+	public void syncForgingStatus()
+	{
+		if(getKnownAccounts().size() > 0)
+		{
+			//CONNECTIONS OKE? -> FORGING
+			if(Controller.getInstance().getStatus() == Controller.STATUS_OK)
+			{
+				setForgingStatus(ForgingStatus.FORGING);
+			}else
+			{
+				setForgingStatus(ForgingStatus.FORGING_ENABLED);
+			}
+		}else
+		{
+			setForgingStatus(ForgingStatus.FORGING_DISABLED);
+		}
+	}
+	
 }

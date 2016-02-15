@@ -5,16 +5,19 @@ import java.awt.GridBagLayout;
 import java.awt.Image;
 import java.awt.Insets;
 import java.awt.Toolkit;
-import java.text.DateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
-import javax.swing.*;
+import javax.swing.JComponent;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 
 import qora.crypto.Base58;
 import qora.transaction.GenesisTransaction;
+import utils.DateTimeFormat;
+import utils.MenuPopupUtil;
 
 @SuppressWarnings("serial")
 public class GenesisDetailsFrame extends JFrame
@@ -76,6 +79,7 @@ public class GenesisDetailsFrame extends JFrame
 		detailGBC.gridy = 1;
 		JTextField signature = new JTextField(Base58.encode(genesis.getSignature()));
 		signature.setEditable(false);
+		MenuPopupUtil.installContextMenu(signature);
 		this.add(signature, detailGBC);
 		
 		//LABEL TIMESTAMP
@@ -85,9 +89,9 @@ public class GenesisDetailsFrame extends JFrame
 						
 		//TIMESTAMP
 		detailGBC.gridy = 3;
-		Date date = new Date(genesis.getTimestamp());
-		DateFormat format = DateFormat.getDateTimeInstance();
-		JLabel timestamp = new JLabel(format.format(date));
+		JTextField timestamp = new JTextField(DateTimeFormat.timestamptoString(genesis.getTimestamp()));
+		timestamp.setEditable(false);
+		MenuPopupUtil.installContextMenu(timestamp);
 		this.add(timestamp, detailGBC);
 		
 		//LABEL RECIPIENT
@@ -99,6 +103,7 @@ public class GenesisDetailsFrame extends JFrame
 		detailGBC.gridy = 5;
 		JTextField recipient = new JTextField(genesis.getRecipient().getAddress());
 		recipient.setEditable(false);
+		MenuPopupUtil.installContextMenu(recipient);
 		this.add(recipient, detailGBC);		
 		
 		//LABEL AMOUNT
@@ -110,6 +115,7 @@ public class GenesisDetailsFrame extends JFrame
 		detailGBC.gridy = 6;
 		JTextField amount = new JTextField(genesis.getAmount().toPlainString());
 		amount.setEditable(false);
+		MenuPopupUtil.installContextMenu(amount);
 		this.add(amount, detailGBC);		
 		
 		//LABEL CONFIRMATIONS

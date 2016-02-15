@@ -35,12 +35,14 @@ import javax.swing.table.TableRowSorter;
 import qora.account.Account;
 import qora.assets.Asset;
 import utils.BigDecimalStringComparator;
+import utils.NumberAsString;
+import utils.TableMenuPopupUtil;
 import controller.Controller;
 
 @SuppressWarnings("serial")
 public class AccountsPanel extends JPanel implements ItemListener
 {
-	private JComboBox<Asset> cbxFavorites;
+	private static JComboBox<Asset> cbxFavorites;
 	private AccountsTableModel tableModel;
 
 	@SuppressWarnings("unchecked")
@@ -165,7 +167,8 @@ public class AccountsPanel extends JPanel implements ItemListener
 		});
 		menu.add(copyGeneratingBalance);
 		
-		table.setComponentPopupMenu(menu);
+		TableMenuPopupUtil.installContextMenu(table, menu);  // SELECT ROW ON WHICH CLICKED RIGHT BUTTON
+		
 		table.addMouseListener(new MouseAdapter() 
 		{
 		     @Override
@@ -188,7 +191,7 @@ public class AccountsPanel extends JPanel implements ItemListener
 		table.getModel().addTableModelListener(new TableModelListener() {
 			@Override
 			public void tableChanged(TableModelEvent arg0) {
-				totalBalance.setText("Confirmed Balance: " + tableModel.getTotalBalance().toPlainString());				
+				totalBalance.setText("Confirmed Balance: " + NumberAsString.getInstance().numberAsString(tableModel.getTotalBalance()));				
 			}		
 		});
 		
@@ -206,6 +209,11 @@ public class AccountsPanel extends JPanel implements ItemListener
 		this.add(newButton, buttonGBC);
 	}
 	
+	public static Asset getAsset()
+	{
+		return (Asset) cbxFavorites.getSelectedItem();
+	}
+
 	public void onNewClick()
 	{
 		//CHECK IF WALLET UNLOCKED

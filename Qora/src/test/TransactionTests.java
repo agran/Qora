@@ -18,11 +18,11 @@ import qora.account.PrivateKeyAccount;
 import qora.assets.Asset;
 import qora.block.GenesisBlock;
 import qora.crypto.Crypto;
-import qora.crypto.Ed25519;
 import qora.naming.Name;
 import qora.naming.NameSale;
 import qora.payment.Payment;
 import qora.transaction.ArbitraryTransaction;
+import qora.transaction.ArbitraryTransactionV1;
 import qora.transaction.BuyNameTransaction;
 import qora.transaction.CancelOrderTransaction;
 import qora.transaction.CancelSellNameTransaction;
@@ -49,7 +49,6 @@ public class TransactionTests {
 	@Test
 	public void validateSignatureGenesisTransaction() 
 	{
-		Ed25519.load();
 		
 		//CHECK VALID SIGNATURE
 		Transaction transaction = new GenesisTransaction(new Account("XUi2oga2pnGNcZ9es6pBqxydtRZKWdkL2g"), BigDecimal.valueOf(1000).setScale(8), NTP.getTime());
@@ -59,22 +58,21 @@ public class TransactionTests {
 	@Test
 	public void validateGenesisTransaction() 
 	{
-		Ed25519.load();
 		
 		//CREATE MEMORYDB
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
 		
 		//CHECK NORMAL VALID
 		Transaction transaction = new GenesisTransaction(new Account("XUi2oga2pnGNcZ9es6pBqxydtRZKWdkL2g"), BigDecimal.valueOf(1000).setScale(8), NTP.getTime());
-		assertEquals(Transaction.VALIDATE_OKE, transaction.isValid(databaseSet));
+		assertEquals(Transaction.VALIDATE_OK, transaction.isValid(databaseSet));
 		
 		//CHECK INVALID ADDRESS
 		transaction = new GenesisTransaction(new Account("test"), BigDecimal.valueOf(-1000).setScale(8), NTP.getTime());
-		assertNotEquals(Transaction.VALIDATE_OKE, transaction.isValid(databaseSet));
+		assertNotEquals(Transaction.VALIDATE_OK, transaction.isValid(databaseSet));
 		
 		//CHECK NEGATIVE AMOUNT
 		transaction = new GenesisTransaction(new Account("XUi2oga2pnGNcZ9es6pBqxydtRZKWdkL2g"), BigDecimal.valueOf(-1000).setScale(8), NTP.getTime());
-		assertNotEquals(Transaction.VALIDATE_OKE, transaction.isValid(databaseSet));
+		assertNotEquals(Transaction.VALIDATE_OK, transaction.isValid(databaseSet));
 	}
 	
 	@Test
@@ -122,14 +120,13 @@ public class TransactionTests {
 		}
 		catch (Exception e) 
 		{
-			//EXCEPTION IS THROWN OKE
+			//EXCEPTION IS THROWN OK
 		}	
 	}
 	
 	@Test
 	public void processGenesisTransaction() 
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -149,7 +146,6 @@ public class TransactionTests {
 	@Test
 	public void orphanGenesisTransaction() 
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -174,7 +170,6 @@ public class TransactionTests {
 	@Test
 	public void validateSignaturePaymentTransaction() 
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -209,7 +204,6 @@ public class TransactionTests {
 	@Test
 	public void validatePaymentTransaction() 
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -232,31 +226,31 @@ public class TransactionTests {
 		Transaction payment = new PaymentTransaction(sender, recipient, BigDecimal.valueOf(100).setScale(8), BigDecimal.valueOf(1).setScale(8), timestamp, sender.getLastReference(databaseSet), signature);
 
 		//CHECK IF PAYMENT IS VALID
-		assertEquals(Transaction.VALIDATE_OKE, payment.isValid(databaseSet));
+		assertEquals(Transaction.VALIDATE_OK, payment.isValid(databaseSet));
 		
 		//CREATE INVALID PAYMENT INVALID RECIPIENT ADDRESS
 		payment = new PaymentTransaction(sender, new Account("test"), BigDecimal.valueOf(100).setScale(8), BigDecimal.valueOf(1).setScale(8), timestamp, sender.getLastReference(databaseSet), signature);
 	
 		//CHECK IF PAYMENT IS INVALID
-		assertNotEquals(Transaction.VALIDATE_OKE, payment.isValid(databaseSet));
+		assertNotEquals(Transaction.VALIDATE_OK, payment.isValid(databaseSet));
 		
 		//CREATE INVALID PAYMENT NEGATIVE AMOUNT
 		payment = new PaymentTransaction(sender, recipient, BigDecimal.valueOf(-100).setScale(8), BigDecimal.valueOf(1).setScale(8), timestamp, sender.getLastReference(databaseSet), signature);
 		
 		//CHECK IF PAYMENT IS INVALID
-		assertNotEquals(Transaction.VALIDATE_OKE, payment.isValid(databaseSet));	
+		assertNotEquals(Transaction.VALIDATE_OK, payment.isValid(databaseSet));	
 		
 		//CREATE INVALID PAYMENT NEGATIVE FEE
 		payment = new PaymentTransaction(sender, recipient, BigDecimal.valueOf(100).setScale(8), BigDecimal.valueOf(-1).setScale(8), timestamp, sender.getLastReference(databaseSet), signature);
 				
 		//CHECK IF PAYMENT IS INVALID
-		assertNotEquals(Transaction.VALIDATE_OKE, payment.isValid(databaseSet));	
+		assertNotEquals(Transaction.VALIDATE_OK, payment.isValid(databaseSet));	
 		
 		//CREATE INVALID PAYMENT WRONG REFERENCE
 		payment = new PaymentTransaction(sender, recipient, BigDecimal.valueOf(100).setScale(8), BigDecimal.valueOf(1).setScale(8), timestamp, new byte[0], signature);
 						
 		//CHECK IF PAYMENT IS INVALID
-		assertNotEquals(Transaction.VALIDATE_OKE, payment.isValid(databaseSet));	
+		assertNotEquals(Transaction.VALIDATE_OK, payment.isValid(databaseSet));	
 	}
 	
 	@Test
@@ -329,14 +323,13 @@ public class TransactionTests {
 		}
 		catch (Exception e) 
 		{
-			//EXCEPTION IS THROWN OKE
+			//EXCEPTION IS THROWN OK
 		}	
 	}
 	
 	@Test
 	public void processPaymentTransaction()
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -394,7 +387,6 @@ public class TransactionTests {
 	@Test
 	public void orphanPaymentTransaction()
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -458,7 +450,6 @@ public class TransactionTests {
 	@Test
 	public void validateSignatureRegisterNameTransaction() 
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -495,7 +486,6 @@ public class TransactionTests {
 	@Test
 	public void validateRegisterNameTransaction() 
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -518,7 +508,7 @@ public class TransactionTests {
 		Transaction nameRegistration = new RegisterNameTransaction(sender, name, BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet), signature);	
 		
 		//CHECK IF NAME REGISTRATION IS VALID
-		assertEquals(Transaction.VALIDATE_OKE, nameRegistration.isValid(databaseSet));
+		assertEquals(Transaction.VALIDATE_OK, nameRegistration.isValid(databaseSet));
 		nameRegistration.process(databaseSet);
 		
 		//CREATE INVALID NAME REGISTRATION INVALID NAME LENGTH
@@ -580,7 +570,6 @@ public class TransactionTests {
 	@Test
 	public void parseRegisterNameTransaction() 
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -655,14 +644,13 @@ public class TransactionTests {
 		}
 		catch (Exception e) 
 		{
-			//EXCEPTION IS THROWN OKE
+			//EXCEPTION IS THROWN OK
 		}	
 	}
 
 	@Test
 	public void processRegisterNameTransaction()
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -698,7 +686,6 @@ public class TransactionTests {
 	@Test
 	public void orphanRegisterNameTransaction()
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -737,7 +724,6 @@ public class TransactionTests {
 	@Test
 	public void validateSignatureUpdateNameTransaction()
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -775,7 +761,6 @@ public class TransactionTests {
 	@Test
 	public void validateUpdateNameTransaction() 
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -798,7 +783,7 @@ public class TransactionTests {
 		Transaction nameRegistration = new RegisterNameTransaction(sender, name, BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet), signature);	
 		
 		//CHECK IF NAME REGISTRATION IS VALID
-		assertEquals(Transaction.VALIDATE_OKE, nameRegistration.isValid(databaseSet));
+		assertEquals(Transaction.VALIDATE_OK, nameRegistration.isValid(databaseSet));
 		nameRegistration.process(databaseSet);
 		
 		//CREATE NAME UPDATE
@@ -806,7 +791,7 @@ public class TransactionTests {
 		Transaction nameUpdate = new UpdateNameTransaction(sender, name, BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet), signature);
 	
 		//CHECK IF NAME UPDATE IS VALID
-		assertEquals(Transaction.VALIDATE_OKE, nameUpdate.isValid(databaseSet));
+		assertEquals(Transaction.VALIDATE_OK, nameUpdate.isValid(databaseSet));
 		
 		//CREATE INVALID NAME UPDATE INVALID NAME LENGTH
 		String longName = "";
@@ -863,7 +848,6 @@ public class TransactionTests {
 	@Test
 	public void parseUpdateNameTransaction() 
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -941,14 +925,13 @@ public class TransactionTests {
 		}
 		catch (Exception e) 
 		{
-			//EXCEPTION IS THROWN OKE
+			//EXCEPTION IS THROWN OK
 		}	
 	}
 
 	@Test
 	public void processUpdateNameTransaction()
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -997,7 +980,6 @@ public class TransactionTests {
 	@Test
 	public void orphanUpdateNameTransaction()
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -1048,7 +1030,6 @@ public class TransactionTests {
 	@Test
 	public void validateSignatureSellNameTransaction()
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -1085,7 +1066,6 @@ public class TransactionTests {
 	@Test
 	public void validateSellNameTransaction() 
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -1108,7 +1088,7 @@ public class TransactionTests {
 		Transaction nameRegistration = new RegisterNameTransaction(sender, name, BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet), signature);	
 		
 		//CHECK IF NAME REGISTRATION IS VALID
-		assertEquals(Transaction.VALIDATE_OKE, nameRegistration.isValid(databaseSet));
+		assertEquals(Transaction.VALIDATE_OK, nameRegistration.isValid(databaseSet));
 		nameRegistration.process(databaseSet);
 		
 		//CREATE NAME SALE
@@ -1116,7 +1096,7 @@ public class TransactionTests {
 		Transaction nameSaleTransaction = new SellNameTransaction(sender, nameSale, BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet), signature);
 	
 		//CHECK IF NAME UPDATE IS VALID
-		assertEquals(Transaction.VALIDATE_OKE, nameSaleTransaction.isValid(databaseSet));
+		assertEquals(Transaction.VALIDATE_OK, nameSaleTransaction.isValid(databaseSet));
 		
 		//CREATE INVALID NAME SALE INVALID NAME LENGTH
 		String longName = "";
@@ -1181,7 +1161,6 @@ public class TransactionTests {
 	@Test
 	public void parseSellNameTransaction() 
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -1256,14 +1235,13 @@ public class TransactionTests {
 		}
 		catch (Exception e) 
 		{
-			//EXCEPTION IS THROWN OKE
+			//EXCEPTION IS THROWN OK
 		}	
 	}
 
 	@Test
 	public void processSellNameTransaction()
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -1311,7 +1289,6 @@ public class TransactionTests {
 	@Test
 	public void orphanSellNameTransaction()
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -1359,7 +1336,6 @@ public class TransactionTests {
 	@Test
 	public void validateSignatureCancelSellNameTransaction()
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -1393,7 +1369,6 @@ public class TransactionTests {
 	@Test
 	public void validateCancelSellNameTransaction() 
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -1416,7 +1391,7 @@ public class TransactionTests {
 		Transaction nameRegistration = new RegisterNameTransaction(sender, name, BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet), signature);	
 		
 		//CHECK IF NAME REGISTRATION IS VALID
-		assertEquals(Transaction.VALIDATE_OKE, nameRegistration.isValid(databaseSet));
+		assertEquals(Transaction.VALIDATE_OK, nameRegistration.isValid(databaseSet));
 		nameRegistration.process(databaseSet);
 		
 		//CREATE NAME SALE
@@ -1424,14 +1399,14 @@ public class TransactionTests {
 		Transaction nameSaleTransaction = new SellNameTransaction(sender, nameSale, BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet), signature);
 	
 		//CHECK IF NAME UPDATE IS VALID
-		assertEquals(Transaction.VALIDATE_OKE, nameSaleTransaction.isValid(databaseSet));
+		assertEquals(Transaction.VALIDATE_OK, nameSaleTransaction.isValid(databaseSet));
 		nameSaleTransaction.process(databaseSet);
 		
 		//CREATE CANCEL NAME SALE
 		CancelSellNameTransaction cancelNameSaleTransaction = new CancelSellNameTransaction(sender, nameSale.getKey(), BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet), signature);		
 
 		//CHECK IF CANCEL NAME UPDATE IS VALID
-		assertEquals(Transaction.VALIDATE_OKE, cancelNameSaleTransaction.isValid(databaseSet));
+		assertEquals(Transaction.VALIDATE_OK, cancelNameSaleTransaction.isValid(databaseSet));
 		
 		//CREATE INVALID CANCEL NAME SALE INVALID NAME LENGTH
 		String longName = "";
@@ -1497,7 +1472,6 @@ public class TransactionTests {
 	@Test
 	public void parseCancelSellNameTransaction() 
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -1568,14 +1542,13 @@ public class TransactionTests {
 		}
 		catch (Exception e) 
 		{
-			//EXCEPTION IS THROWN OKE
+			//EXCEPTION IS THROWN OK
 		}	
 	}
 	
 	@Test
 	public void processCancelSellNameTransaction()
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -1626,7 +1599,6 @@ public class TransactionTests {
 	@Test
 	public void orphanCancelSellNameTransaction()
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -1684,7 +1656,6 @@ public class TransactionTests {
 	@Test
 	public void validateSignatureBuyNameTransaction()
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -1719,7 +1690,6 @@ public class TransactionTests {
 	@Test
 	public void validateBuyNameTransaction() 
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -1751,7 +1721,7 @@ public class TransactionTests {
 		Transaction nameRegistration = new RegisterNameTransaction(sender, name, BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet), signature);	
 		
 		//CHECK IF NAME REGISTRATION IS VALID
-		assertEquals(Transaction.VALIDATE_OKE, nameRegistration.isValid(databaseSet));
+		assertEquals(Transaction.VALIDATE_OK, nameRegistration.isValid(databaseSet));
 		nameRegistration.process(databaseSet);
 		
 		//CREATE NAME SALE
@@ -1759,14 +1729,14 @@ public class TransactionTests {
 		Transaction nameSaleTransaction = new SellNameTransaction(sender, nameSale, BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet), signature);
 	
 		//CHECK IF NAME UPDATE IS VALID
-		assertEquals(Transaction.VALIDATE_OKE, nameSaleTransaction.isValid(databaseSet));
+		assertEquals(Transaction.VALIDATE_OK, nameSaleTransaction.isValid(databaseSet));
 		nameSaleTransaction.process(databaseSet);
 		
 		//CREATE NAME PURCHASE
 		BuyNameTransaction namePurchaseTransaction = new BuyNameTransaction(buyer, nameSale, nameSale.getName(databaseSet).getOwner(), BigDecimal.ONE.setScale(8), timestamp, buyer.getLastReference(databaseSet), signature);		
 
 		//CHECK IF NAME PURCHASE IS VALID
-		assertEquals(Transaction.VALIDATE_OKE, namePurchaseTransaction.isValid(databaseSet));
+		assertEquals(Transaction.VALIDATE_OK, namePurchaseTransaction.isValid(databaseSet));
 		
 		//CREATE INVALID NAME PURCHASE INVALID NAME LENGTH
 		String longName = "";
@@ -1826,7 +1796,6 @@ public class TransactionTests {
 	@Test
 	public void parseBuyNameTransaction() 
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -1898,14 +1867,13 @@ public class TransactionTests {
 		}
 		catch (Exception e) 
 		{
-			//EXCEPTION IS THROWN OKE
+			//EXCEPTION IS THROWN OK
 		}	
 	}
 	
 	@Test
 	public void processBuyNameTransaction()
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -1972,7 +1940,6 @@ public class TransactionTests {
 	@Test
 	public void orphanBuyNameTransaction()
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -2042,7 +2009,6 @@ public class TransactionTests {
 	@Test
 	public void validateSignatureCreatePollTransaction() 
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -2079,7 +2045,6 @@ public class TransactionTests {
 	@Test
 	public void validateCreatePollTransaction() 
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -2102,7 +2067,7 @@ public class TransactionTests {
 		Transaction pollCreation = new CreatePollTransaction(sender, poll, BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet), signature);	
 		
 		//CHECK IF POLL CREATION IS VALID
-		assertEquals(Transaction.VALIDATE_OKE, pollCreation.isValid(databaseSet));
+		assertEquals(Transaction.VALIDATE_OK, pollCreation.isValid(databaseSet));
 		pollCreation.process(databaseSet);
 		
 		//CREATE INVALID POLL CREATION INVALID NAME LENGTH
@@ -2185,7 +2150,6 @@ public class TransactionTests {
 	@Test
 	public void parseCreatePollTransaction() 
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -2270,14 +2234,13 @@ public class TransactionTests {
 		}
 		catch (Exception e) 
 		{
-			//EXCEPTION IS THROWN OKE
+			//EXCEPTION IS THROWN OK
 		}	
 	}
 
 	@Test
 	public void processCreatePollTransaction()
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -2313,7 +2276,6 @@ public class TransactionTests {
 	@Test
 	public void orphanCreatePollTransaction()
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -2352,7 +2314,6 @@ public class TransactionTests {
 	@Test
 	public void validateSignatureVoteOnPollTransaction() 
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -2386,7 +2347,6 @@ public class TransactionTests {
 	@Test
 	public void validateVoteOnPollTransaction() 
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -2409,7 +2369,7 @@ public class TransactionTests {
 		Transaction pollCreation = new CreatePollTransaction(sender, poll, BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet), signature);	
 		
 		//CHECK IF POLL CREATION IS VALID
-		assertEquals(Transaction.VALIDATE_OKE, pollCreation.isValid(databaseSet));
+		assertEquals(Transaction.VALIDATE_OK, pollCreation.isValid(databaseSet));
 		pollCreation.process(databaseSet);
 		
 		//CREATE POLL VOTE
@@ -2417,7 +2377,7 @@ public class TransactionTests {
 		Transaction pollVote = new VoteOnPollTransaction(sender, poll.getName(), 0, BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet), signature);	
 		
 		//CHECK IF POLL VOTE IS VALID
-		assertEquals(Transaction.VALIDATE_OKE, pollVote.isValid(databaseSet));
+		assertEquals(Transaction.VALIDATE_OK, pollVote.isValid(databaseSet));
 		pollVote.process(databaseSet);
 		
 		//CREATE INVALID POLL VOTE INVALID NAME LENGTH
@@ -2482,7 +2442,6 @@ public class TransactionTests {
 	@Test
 	public void parseVoteOnPollTransaction() 
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -2556,7 +2515,7 @@ public class TransactionTests {
 		}
 		catch (Exception e) 
 		{
-			//EXCEPTION IS THROWN OKE
+			//EXCEPTION IS THROWN OK
 		}	
 	}
 
@@ -2564,7 +2523,6 @@ public class TransactionTests {
 	@Test
 	public void processVoteOnPollTransaction()
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -2620,7 +2578,6 @@ public class TransactionTests {
 	@Test
 	public void orphanVoteOnPollTransaction()
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -2668,7 +2625,6 @@ public class TransactionTests {
 	@Test
 	public void validateSignatureArbitraryTransaction() 
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -2687,13 +2643,13 @@ public class TransactionTests {
 		byte[] signature = ArbitraryTransaction.generateSignature(databaseSet, sender, 4889, "test".getBytes(), BigDecimal.valueOf(1).setScale(8), timestamp);
 		
 		//CREATE ARBITRARY TRANSACTION
-		Transaction arbitraryTransaction = new ArbitraryTransaction(sender, 4889, "test".getBytes(), BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet), signature);
+		Transaction arbitraryTransaction = new ArbitraryTransactionV1(sender, 4889, "test".getBytes(), BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet), signature);
 		
 		//CHECK IF ARBITRARY TRANSACTION IS VALID
 		assertEquals(true, arbitraryTransaction.isSignatureValid());
 		
 		//INVALID SIGNATURE
-		arbitraryTransaction = new ArbitraryTransaction(sender, 4889, "test".getBytes(), BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet), new byte[0]);
+		arbitraryTransaction = new ArbitraryTransactionV1(sender, 4889, "test".getBytes(), BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet), new byte[0]);
 		
 		//CHECK IF POLL VOTE IS INVALID
 		assertEquals(false, arbitraryTransaction.isSignatureValid());
@@ -2702,7 +2658,6 @@ public class TransactionTests {
 	@Test
 	public void validateArbitraryTransaction() 
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -2722,15 +2677,15 @@ public class TransactionTests {
 		byte[] signature = ArbitraryTransaction.generateSignature(databaseSet, sender, 4776, data, BigDecimal.valueOf(1).setScale(8), timestamp);
 				
 		//CREATE ARBITRARY TRANSACTION
-		Transaction arbitraryTransaction = new ArbitraryTransaction(sender, 4776, data, BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet), signature);	
+		Transaction arbitraryTransaction = new ArbitraryTransactionV1(sender, 4776, data, BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet), signature);	
 		
 		//CHECK IF ARBITRARY TRANSACTION IS VALID
-		assertEquals(Transaction.VALIDATE_OKE, arbitraryTransaction.isValid(databaseSet));
+		assertEquals(Transaction.VALIDATE_OK, arbitraryTransaction.isValid(databaseSet));
 		arbitraryTransaction.process(databaseSet);
 		
 		//CREATE INVALID ARBITRARY TRANSACTION INVALID data LENGTH
 		byte[] longData = new byte[5000];
-		arbitraryTransaction = new ArbitraryTransaction(sender, 4776, longData, BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet), signature);	
+		arbitraryTransaction = new ArbitraryTransactionV1(sender, 4776, longData, BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet), signature);	
 
 		//CHECK IF ARBITRARY TRANSACTION IS INVALID
 		assertEquals(Transaction.INVALID_DATA_LENGTH, arbitraryTransaction.isValid(databaseSet));
@@ -2739,19 +2694,19 @@ public class TransactionTests {
 		seed = Crypto.getInstance().digest("invalid".getBytes());
 		privateKey = Crypto.getInstance().createKeyPair(seed).getA();
 		PrivateKeyAccount invalidOwner = new PrivateKeyAccount(privateKey);
-		arbitraryTransaction = new ArbitraryTransaction(invalidOwner, 4776, data, BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet), signature);	
+		arbitraryTransaction = new ArbitraryTransactionV1(invalidOwner, 4776, data, BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet), signature);	
 		
 		//CHECK IF ARBITRARY TRANSACTION IS INVALID
 		assertEquals(Transaction.NO_BALANCE, arbitraryTransaction.isValid(databaseSet));
 		
 		//CREATE ARBITRARY TRANSACTION INVALID REFERENCE
-		arbitraryTransaction = new ArbitraryTransaction(sender, 4776, data, BigDecimal.ONE.setScale(8), timestamp, invalidOwner.getLastReference(databaseSet), signature);	
+		arbitraryTransaction = new ArbitraryTransactionV1(sender, 4776, data, BigDecimal.ONE.setScale(8), timestamp, invalidOwner.getLastReference(databaseSet), signature);	
 		
 		//CHECK IF ARBITRARY TRANSACTION IS INVALID
 		assertEquals(Transaction.INVALID_REFERENCE, arbitraryTransaction.isValid(databaseSet));
 		
 		//CREATE ARBITRARY TRANSACTION INVALID FEE
-		arbitraryTransaction = new ArbitraryTransaction(sender, 4776, data, BigDecimal.ZERO.setScale(8), timestamp, sender.getLastReference(databaseSet), signature);	
+		arbitraryTransaction = new ArbitraryTransactionV1(sender, 4776, data, BigDecimal.ZERO.setScale(8), timestamp, sender.getLastReference(databaseSet), signature);	
 		
 		//CHECK IF ARBITRARY TRANSACTION IS INVALID
 		assertEquals(Transaction.NEGATIVE_FEE, arbitraryTransaction.isValid(databaseSet));
@@ -2761,7 +2716,6 @@ public class TransactionTests {
 	@Test
 	public void parseArbitraryTransaction() 
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -2780,7 +2734,7 @@ public class TransactionTests {
 		byte[] signature = ArbitraryTransaction.generateSignature(databaseSet, sender, 4776, "test".getBytes(), BigDecimal.valueOf(1).setScale(8), timestamp);
 				
 		//CREATE ARBITRARY TRANSACTION
-		ArbitraryTransaction arbitraryTransaction = new ArbitraryTransaction(sender, 4776, "test".getBytes(),BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet), signature);	
+		ArbitraryTransaction arbitraryTransaction = new ArbitraryTransactionV1(sender, 4776, "test".getBytes(),BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet), signature);	
 		
 		//CONVERT TO BYTES
 		byte[] rawArbitraryTransaction = arbitraryTransaction.toBytes();
@@ -2835,7 +2789,7 @@ public class TransactionTests {
 		}
 		catch (Exception e) 
 		{
-			//EXCEPTION IS THROWN OKE
+			//EXCEPTION IS THROWN OK
 		}	
 	}
 
@@ -2843,7 +2797,6 @@ public class TransactionTests {
 	@Test
 	public void processArbitraryTransaction()
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -2862,7 +2815,7 @@ public class TransactionTests {
 		byte[] signature = ArbitraryTransaction.generateSignature(databaseSet, sender, 4776, "test".getBytes(), BigDecimal.valueOf(1).setScale(8), timestamp);
 						
 		//CREATE ARBITRARY TRANSACTION
-		ArbitraryTransaction arbitraryTransaction = new ArbitraryTransaction(sender, 4776, "test".getBytes(),BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet), signature);	
+		ArbitraryTransaction arbitraryTransaction = new ArbitraryTransactionV1(sender, 4776, "test".getBytes(),BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet), signature);	
 		arbitraryTransaction.process(databaseSet);				
 		
 		//CHECK BALANCE SENDER
@@ -2875,7 +2828,6 @@ public class TransactionTests {
 	@Test
 	public void orphanArbitraryTransaction()
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -2894,7 +2846,7 @@ public class TransactionTests {
 		byte[] signature = ArbitraryTransaction.generateSignature(databaseSet, sender, 4776, "test".getBytes(), BigDecimal.valueOf(1).setScale(8), timestamp);
 								
 		//CREATE ARBITRARY TRANSACTION
-		ArbitraryTransaction arbitraryTransaction = new ArbitraryTransaction(sender, 4776, "test".getBytes(),BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet), signature);	
+		ArbitraryTransaction arbitraryTransaction = new ArbitraryTransactionV1(sender, 4776, "test".getBytes(),BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet), signature);	
 		arbitraryTransaction.process(databaseSet);	
 		arbitraryTransaction.orphan(databaseSet);
 		
@@ -2910,7 +2862,6 @@ public class TransactionTests {
 	@Test
 	public void validateSignatureIssueAssetTransaction() 
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -2947,7 +2898,6 @@ public class TransactionTests {
 	/*@Test
 	public void validateArbitraryTransaction() 
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -2967,15 +2917,15 @@ public class TransactionTests {
 		byte[] signature = ArbitraryTransaction.generateSignature(databaseSet, sender, 4776, data, BigDecimal.valueOf(1).setScale(8), timestamp);
 				
 		//CREATE ARBITRARY TRANSACTION
-		Transaction arbitraryTransaction = new ArbitraryTransaction(sender, 4776, data, BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet), signature);	
+		Transaction arbitraryTransaction = new ArbitraryTransactionV1(sender, 4776, data, BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet), signature);	
 		
 		//CHECK IF ARBITRARY TRANSACTION IS VALID
-		assertEquals(Transaction.VALIDATE_OKE, arbitraryTransaction.isValid(databaseSet));
+		assertEquals(Transaction.VALIDATE_OK, arbitraryTransaction.isValid(databaseSet));
 		arbitraryTransaction.process(databaseSet);
 		
 		//CREATE INVALID ARBITRARY TRANSACTION INVALID data LENGTH
 		byte[] longData = new byte[5000];
-		arbitraryTransaction = new ArbitraryTransaction(sender, 4776, longData, BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet), signature);	
+		arbitraryTransaction = new ArbitraryTransactionV1(sender, 4776, longData, BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet), signature);	
 
 		//CHECK IF ARBITRARY TRANSACTION IS INVALID
 		assertEquals(Transaction.INVALID_DATA_LENGTH, arbitraryTransaction.isValid(databaseSet));
@@ -2984,19 +2934,19 @@ public class TransactionTests {
 		seed = Crypto.getInstance().digest("invalid".getBytes());
 		privateKey = Crypto.getInstance().createKeyPair(seed).getA();
 		PrivateKeyAccount invalidOwner = new PrivateKeyAccount(privateKey);
-		arbitraryTransaction = new ArbitraryTransaction(invalidOwner, 4776, data, BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet), signature);	
+		arbitraryTransaction = new ArbitraryTransactionV1(invalidOwner, 4776, data, BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet), signature);	
 		
 		//CHECK IF ARBITRARY TRANSACTION IS INVALID
 		assertEquals(Transaction.NO_BALANCE, arbitraryTransaction.isValid(databaseSet));
 		
 		//CREATE ARBITRARY TRANSACTION INVALID REFERENCE
-		arbitraryTransaction = new ArbitraryTransaction(sender, 4776, data, BigDecimal.ONE.setScale(8), timestamp, invalidOwner.getLastReference(databaseSet), signature);	
+		arbitraryTransaction = new ArbitraryTransactionV1(sender, 4776, data, BigDecimal.ONE.setScale(8), timestamp, invalidOwner.getLastReference(databaseSet), signature);	
 		
 		//CHECK IF ARBITRARY TRANSACTION IS INVALID
 		assertEquals(Transaction.INVALID_REFERENCE, arbitraryTransaction.isValid(databaseSet));
 		
 		//CREATE ARBITRARY TRANSACTION INVALID FEE
-		arbitraryTransaction = new ArbitraryTransaction(sender, 4776, data, BigDecimal.ZERO.setScale(8), timestamp, sender.getLastReference(databaseSet), signature);	
+		arbitraryTransaction = new ArbitraryTransactionV1(sender, 4776, data, BigDecimal.ZERO.setScale(8), timestamp, sender.getLastReference(databaseSet), signature);	
 		
 		//CHECK IF ARBITRARY TRANSACTION IS INVALID
 		assertEquals(Transaction.NEGATIVE_FEE, arbitraryTransaction.isValid(databaseSet));
@@ -3006,7 +2956,6 @@ public class TransactionTests {
 	@Test
 	public void parseIssueAssetTransaction() 
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -3090,7 +3039,7 @@ public class TransactionTests {
 		}
 		catch (Exception e) 
 		{
-			//EXCEPTION IS THROWN OKE
+			//EXCEPTION IS THROWN OK
 		}	
 	}
 
@@ -3098,7 +3047,6 @@ public class TransactionTests {
 	@Test
 	public void processIssueAssetTransaction()
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -3142,7 +3090,6 @@ public class TransactionTests {
 	@Test
 	public void orphanIssueAssetTransaction()
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -3185,7 +3132,6 @@ public class TransactionTests {
 	@Test
 	public void validateSignatureTransferAssetTransaction() 
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -3220,7 +3166,6 @@ public class TransactionTests {
 	@Test
 	public void validateTransferAssetTransaction() 
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -3247,44 +3192,44 @@ public class TransactionTests {
 		Transaction assetTransfer = new TransferAssetTransaction(sender, recipient, 0, BigDecimal.valueOf(100).setScale(8), BigDecimal.valueOf(1).setScale(8), timestamp, sender.getLastReference(databaseSet), signature);
 
 		//CHECK IF ASSET TRANSFER IS VALID
-		assertEquals(Transaction.VALIDATE_OKE, assetTransfer.isValid(databaseSet));
+		assertEquals(Transaction.VALIDATE_OK, assetTransfer.isValid(databaseSet));
 		
 		//CREATE VALID ASSET TRANSFER
 		sender.setConfirmedBalance(1, BigDecimal.valueOf(100).setScale(8), databaseSet);
 		assetTransfer = new TransferAssetTransaction(sender, recipient, 0, BigDecimal.valueOf(100).setScale(8), BigDecimal.valueOf(1).setScale(8), timestamp, sender.getLastReference(databaseSet), signature);
 
 		//CHECK IF ASSET TRANSFER IS VALID
-		assertEquals(Transaction.VALIDATE_OKE, assetTransfer.isValid(databaseSet));			
+		assertEquals(Transaction.VALIDATE_OK, assetTransfer.isValid(databaseSet));			
 		
 		//CREATE INVALID ASSET TRANSFER INVALID RECIPIENT ADDRESS
 		assetTransfer = new TransferAssetTransaction(sender, new Account("test"), 0, BigDecimal.valueOf(100).setScale(8), BigDecimal.valueOf(1).setScale(8), timestamp, sender.getLastReference(databaseSet), signature);
 	
 		//CHECK IF ASSET TRANSFER IS INVALID
-		assertNotEquals(Transaction.VALIDATE_OKE, assetTransfer.isValid(databaseSet));
+		assertNotEquals(Transaction.VALIDATE_OK, assetTransfer.isValid(databaseSet));
 		
 		//CREATE INVALID ASSET TRANSFER NEGATIVE AMOUNT
 		assetTransfer = new TransferAssetTransaction(sender, recipient, 0, BigDecimal.valueOf(-100).setScale(8), BigDecimal.valueOf(1).setScale(8), timestamp, sender.getLastReference(databaseSet), signature);
 		
 		//CHECK IF ASSET TRANSFER IS INVALID
-		assertNotEquals(Transaction.VALIDATE_OKE, assetTransfer.isValid(databaseSet));	
+		assertNotEquals(Transaction.VALIDATE_OK, assetTransfer.isValid(databaseSet));	
 		
 		//CREATE INVALID ASSET TRANSFER NOT ENOUGH ASSET BALANCE
 		assetTransfer = new TransferAssetTransaction(sender, recipient, 2, BigDecimal.valueOf(100).setScale(8), BigDecimal.valueOf(1).setScale(8), timestamp, sender.getLastReference(databaseSet), signature);
 		
 		//CHECK IF ASSET TRANSFER IS INVALID
-		assertNotEquals(Transaction.VALIDATE_OKE, assetTransfer.isValid(databaseSet));	
+		assertNotEquals(Transaction.VALIDATE_OK, assetTransfer.isValid(databaseSet));	
 				
 		//CREATE INVALID ASSET TRANSFER NEGATIVE FEE
 		assetTransfer = new TransferAssetTransaction(sender, recipient, 0, BigDecimal.valueOf(100).setScale(8), BigDecimal.valueOf(-1).setScale(8), timestamp, sender.getLastReference(databaseSet), signature);
 				
 		//CHECK IF ASSET TRANSFER IS INVALID
-		assertNotEquals(Transaction.VALIDATE_OKE, assetTransfer.isValid(databaseSet));	
+		assertNotEquals(Transaction.VALIDATE_OK, assetTransfer.isValid(databaseSet));	
 		
 		//CREATE INVALID ASSET TRANSFER WRONG REFERENCE
 		assetTransfer = new TransferAssetTransaction(sender, recipient, 0, BigDecimal.valueOf(100).setScale(8), BigDecimal.valueOf(1).setScale(8), timestamp, new byte[0], signature);
 						
 		//CHECK IF ASSET TRANSFER IS INVALID
-		assertNotEquals(Transaction.VALIDATE_OKE, assetTransfer.isValid(databaseSet));	
+		assertNotEquals(Transaction.VALIDATE_OK, assetTransfer.isValid(databaseSet));	
 	}
 	
 	@Test
@@ -3363,14 +3308,13 @@ public class TransactionTests {
 		}
 		catch (Exception e) 
 		{
-			//EXCEPTION IS THROWN OKE
+			//EXCEPTION IS THROWN OK
 		}	
 	}
 	
 	@Test
 	public void processTransferAssetTransaction()
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -3412,7 +3356,6 @@ public class TransactionTests {
 	@Test
 	public void orphanTransferAssetTransaction()
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -3457,7 +3400,6 @@ public class TransactionTests {
 	@Test
 	public void validateSignatureCancelOrderTransaction()
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -3491,7 +3433,6 @@ public class TransactionTests {
 	@Test
 	public void validateCancelOrderTransaction() 
 	{
-		Ed25519.load();
 		DBSet dbSet = DBSet.createEmptyDatabaseSet();
 		
 		//CREATE ASSET A
@@ -3517,7 +3458,7 @@ public class TransactionTests {
 		CancelOrderTransaction cancelOrderTransaction = new CancelOrderTransaction(account, new BigInteger(new byte[]{5,6}), BigDecimal.ONE.setScale(8), System.currentTimeMillis(), account.getLastReference(dbSet), new byte[]{1,2});		
 
 		//CHECK IF CANCEL ORDER IS VALID
-		assertEquals(Transaction.VALIDATE_OKE, cancelOrderTransaction.isValid(dbSet));
+		assertEquals(Transaction.VALIDATE_OK, cancelOrderTransaction.isValid(dbSet));
 		
 		//CREATE INVALID CANCEL ORDER ORDER DOES NOT EXIST
 		cancelOrderTransaction = new CancelOrderTransaction(account, new BigInteger(new byte[]{5,7}), BigDecimal.ONE.setScale(8), System.currentTimeMillis(), account.getLastReference(dbSet), new byte[]{1,2});		
@@ -3558,7 +3499,6 @@ public class TransactionTests {
 	@Test
 	public void parseCancelOrderTransaction() 
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -3632,14 +3572,13 @@ public class TransactionTests {
 		}
 		catch (Exception e) 
 		{
-			//EXCEPTION IS THROWN OKE
+			//EXCEPTION IS THROWN OK
 		}	
 	}
 	
 	@Test
 	public void processCancelOrderTransaction()
 	{
-		Ed25519.load();
 		DBSet dbSet = DBSet.createEmptyDatabaseSet();
 		
 		//CREATE ASSET A
@@ -3678,7 +3617,6 @@ public class TransactionTests {
 	@Test
 	public void orphanCancelOrderTransaction()
 	{
-		Ed25519.load();
 		DBSet dbSet = DBSet.createEmptyDatabaseSet();
 		
 		//CREATE ASSET A
@@ -3720,7 +3658,6 @@ public class TransactionTests {
 	@Test
 	public void validateSignatureMultiPaymentTransaction() 
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet dbSet = DBSet.createEmptyDatabaseSet();
@@ -3761,7 +3698,6 @@ public class TransactionTests {
 	@Test
 	public void validateMultiPaymentTransaction() 
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet dbSet = DBSet.createEmptyDatabaseSet();
@@ -3790,7 +3726,7 @@ public class TransactionTests {
 		Transaction multiPayment = new MultiPaymentTransaction(sender, payments, BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(dbSet), signature);
 		
 		//CHECK IF ASSET TRANSFER IS VALID
-		assertEquals(Transaction.VALIDATE_OKE, multiPayment.isValid(dbSet));			
+		assertEquals(Transaction.VALIDATE_OK, multiPayment.isValid(dbSet));			
 		
 		//CREATE INVALID MULTI PAYMENT INVALID RECIPIENT ADDRESS
 		Payment invalidRecipientPayment = new Payment(new Account("test"), 0l, BigDecimal.ONE.setScale(8));
@@ -3835,7 +3771,6 @@ public class TransactionTests {
 	@Test
 	public void parseMultiPaymentTransaction() 
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet dbSet = DBSet.createEmptyDatabaseSet();
@@ -3930,14 +3865,13 @@ public class TransactionTests {
 		}
 		catch (Exception e) 
 		{
-			//EXCEPTION IS THROWN OKE
+			//EXCEPTION IS THROWN OK
 		}	
 	}
 	
 	@Test
 	public void processMultiPaymentTransaction()
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet dbSet = DBSet.createEmptyDatabaseSet();
@@ -3984,7 +3918,6 @@ public class TransactionTests {
 	@Test
 	public void orphanMultiPaymentTransaction()
 	{
-		Ed25519.load();
 		
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet dbSet = DBSet.createEmptyDatabaseSet();

@@ -1,17 +1,35 @@
 {
 	"knownpeers":[
-		"146.185.141.232",
-		"162.243.170.76",
-		"42.159.153.145",
-		"88.198.69.99",
-		"85.21.237.35",
-		"193.242.149.63",
-		"113.250.226.131"
+		"188.166.53.239",
+		"37.157.193.229",
+		"203.87.156.149",
+		"106.187.42.214",
+		"104.172.66.205",
+		"91.89.34.169",
+		"167.114.97.142",
+		"198.199.103.12",
+		"106.186.122.39",
+		"188.166.16.64",
+		"130.180.201.117",
+		"61.186.94.151",
+		"193.242.148.251"
 	],
-	"minconnections": 10,
-	"generatorkeycaching": true,
 	"rpcallowed":[
-		"127.0.0.1",
-		"123.123.123.123"
-	]
+		"127.0.0.1"
+	],
+	"weballowed":[
+		"127.0.0.1"
+	],
+	"blockexplorerboost":false,
+	"guienabled":true,
+	"rpcenabled":true,
+	"webenabled":true,
+	"systray":true,
+	"maxconnections":100,
+	"minconnections":10,
+	"generatorkeycaching":true,
+	"checkpoint":true,
+	"soundreceivepayment":true,
+	"soundnewtransaction":true,
+	"soundreceivemessage":true
 }

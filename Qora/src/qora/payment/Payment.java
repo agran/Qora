@@ -80,7 +80,7 @@ public class Payment {
 		JSONObject payment = new JSONObject();
 								
 		//ADD RECIPIENT/ASSET/AMOUNT
-		payment.put("recipient", this.recipient);
+		payment.put("recipient", this.recipient.getAddress());
 		payment.put("asset", this.asset);
 		payment.put("amount", this.amount.toPlainString());
 								
