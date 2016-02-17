@@ -72,8 +72,14 @@ public class WalletResource {
 			throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_WALLET_NO_EXISTS);
 		}
 				
-		Controller.getInstance().synchronizeWallet();
-		return String.valueOf(true);
+		if(!Controller.getInstance().isProcessingWalletSynchronize()) {
+			
+			Controller.getInstance().synchronizeWallet();
+			
+			return String.valueOf(true);
+		} else {
+			return String.valueOf(false);
+		}
 	}
 	
 	@GET
@@ -97,7 +103,7 @@ public class WalletResource {
 	{
 		try
 		{
-			APIUtils.askAPICallAllowed("POST wallet/create " + x, request);
+			APIUtils.askAPICallAllowed("POST wallet " + x, request);
 
 			//READ JSON
 			JSONObject jsonObject = (JSONObject) JSONValue.parse(x);

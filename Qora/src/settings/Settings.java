@@ -3,10 +3,14 @@ package settings;
 import java.io.File;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.net.Inet4Address;
 import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -86,6 +90,9 @@ public class Settings {
 	private JSONObject peersJSON;
 
 	private String currentSettingsPath;
+	private String currentPeersPath;
+	
+	private InetAddress localAddress;
 	
 	List<Peer> cacheInternetPeers;
 	long timeLoadInternetPeers;
@@ -110,6 +117,7 @@ public class Settings {
 	
 	private Settings()
 	{
+		this.localAddress = this.getCurrentIp();
 		int alreadyPassed = 0;
 		String settingsFilePath = "settings.json";
 		
@@ -201,75 +209,88 @@ public class Settings {
 	
 	public String getCurrentPeersPath()
 	{
-		if(this.currentSettingsPath == "settings.json" || this.currentSettingsPath == "") {
-			return "peers.json";
-		} else {
-			File file = new File(this.currentSettingsPath);
-		    if(file.exists()){
-		    	return file.getAbsoluteFile().getParent() + "/peers.json";
-		    }		
+		if(this.currentPeersPath == null) {
+			if(this.currentSettingsPath == "settings.json" || this.currentSettingsPath == "") {
+				this.currentPeersPath = "peers.json";
+			} else {
+				File file = new File(this.currentSettingsPath);
+			    if(file.exists()){
+			    	this.currentPeersPath = file.getAbsoluteFile().getParent() + "/peers.json";
+			    } else {
+			    	this.currentPeersPath = "peers.json";
+			    }
+			}
 		}
-		return currentSettingsPath;
+		return this.currentPeersPath;
 	}
 	
 	public JSONArray getPeersJson()
 	{
-		return (JSONArray) this.peersJSON.get("knownpeers");
+		if(this.peersJSON != null && this.peersJSON.containsKey("knownpeers")) {
+			return (JSONArray) this.peersJSON.get("knownpeers");
+		} else {
+			return new JSONArray();
+		}
+		
 	}
 		
 	@SuppressWarnings("unchecked")
 	public List<Peer> getKnownPeers()
 	{
-		boolean loadPeersFromInternet =	(
-			Controller.getInstance().getToOfflineTime() != 0L 
-			&& 
-			NTP.getTime() - Controller.getInstance().getToOfflineTime() > 5*60*1000
-			);
-		
-		List<Peer> knownPeers = new ArrayList<Peer>();
-		
 		try {
+			boolean loadPeersFromInternet =	(
+				Controller.getInstance().getToOfflineTime() != 0L 
+				&& 
+				NTP.getTime() - Controller.getInstance().getToOfflineTime() > 5*60*1000
+				);
+			
+			List<Peer> knownPeers = new ArrayList<Peer>();
 			JSONArray peersArray = new JSONArray();
-
-			JSONArray peersArraySettings = (JSONArray) this.settingsJSON.get("knownpeers");
-
-			if(peersArraySettings != null)
-			{
-				for (Object peer : peersArraySettings) {
-					if(!peersArray.contains(peer)) {
-						peersArray.add(peer);
+	
+			try {
+				JSONArray peersArraySettings = (JSONArray) this.settingsJSON.get("knownpeers");
+	
+				if(peersArraySettings != null)
+				{
+					for (Object peer : peersArraySettings) {
+						if(!peersArray.contains(peer)) {
+							peersArray.add(peer);
+						}
 					}
 				}
+			} catch (Exception e) {
+				Logger.getGlobal().info("Error with loading knownpeers from settings.json.");
 			}
 			
-			JSONArray peersArrayPeers = (JSONArray) this.peersJSON.get("knownpeers");
-			
-			if(peersArrayPeers != null)
-			{
-				for (Object peer : peersArrayPeers) {
-					if(!peersArray.contains(peer)) {
-						peersArray.add(peer);
+			try {
+				JSONArray peersArrayPeers = (JSONArray) this.peersJSON.get("knownpeers");
+				
+				if(peersArrayPeers != null)
+				{
+					for (Object peer : peersArrayPeers) {
+						if(!peersArray.contains(peer)) {
+							peersArray.add(peer);
+						}
 					}
 				}
+				
+			} catch (Exception e) {
+				Logger.getGlobal().info("Error with loading knownpeers from peers.json.");
 			}
+			
 			knownPeers = getKnownPeersFromJSONArray(peersArray);
-		} catch (Exception e) {
-			knownPeers = new ArrayList<Peer>();
-		}
+			
+			if(knownPeers.size() == 0 || loadPeersFromInternet)
+			{
+				knownPeers = getKnownPeersFromInternet();
+			}
+				
+			return knownPeers;
 		
-		try {
-			
-			
 		} catch (Exception e) {
-			knownPeers = new ArrayList<Peer>();
+			Logger.getGlobal().info("Error in getKnownPeers().");
+			return new ArrayList<Peer>();
 		}
-		
-		if(knownPeers.size() == 0 || loadPeersFromInternet)
-		{
-			knownPeers = getKnownPeersFromInternet();
-		}
-			
-		return knownPeers;
 	}
 	
 	public List<Peer> getKnownPeersFromInternet() 
@@ -294,10 +315,14 @@ public class Settings {
 				}
 			}
 			
+			Logger.getGlobal().info("Peers loaded from Internet : " + this.cacheInternetPeers.size());
+
 			return this.cacheInternetPeers;
 			
 		} catch (Exception e) {
 			//RETURN EMPTY LIST
+
+			Logger.getGlobal().info("Peers loaded from Internet with errors : " + this.cacheInternetPeers.size());
 						
 			return this.cacheInternetPeers;
 		}
@@ -322,8 +347,7 @@ public class Settings {
 				{
 					InetAddress address = InetAddress.getByName((String) peersArray.get(i));
 					
-					//CHECK IF SOCKET IS NOT LOCALHOST
-					if(!address.equals(InetAddress.getLocalHost()))
+					if(!this.isLocalAddress(address))
 					{
 						//CREATE PEER
 						Peer peer = new Peer(address);
@@ -718,4 +742,40 @@ public class Settings {
 		}
 		return true;
 	}
+
+	public boolean isLocalAddress(InetAddress address) {
+		try {
+			if(this.localAddress == null) {
+				return false;
+			} else {
+				return address.equals(this.localAddress);
+			}
+		} catch (Exception e) {
+            return false;
+        }
+	}
+	
+	public InetAddress getCurrentIp() {
+        try {
+            Enumeration<NetworkInterface> networkInterfaces = NetworkInterface
+                    .getNetworkInterfaces();
+            while (networkInterfaces.hasMoreElements()) {
+                NetworkInterface ni = (NetworkInterface) networkInterfaces
+                        .nextElement();
+                Enumeration<InetAddress> nias = ni.getInetAddresses();
+                while(nias.hasMoreElements()) {
+                    InetAddress ia= (InetAddress) nias.nextElement();
+                    if (!ia.isLinkLocalAddress() 
+                     && !ia.isLoopbackAddress()
+                     && ia instanceof Inet4Address) {
+                        return ia;
+                    }
+                }
+            }
+        } catch (SocketException e) {
+            System.out.println("unable to get current IP " + e.getMessage());
+        }
+		return null;
+    }
+
 }

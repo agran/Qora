@@ -58,12 +58,15 @@ public class Wallet extends Observable implements Observer
 	private int secondsToUnlock = -1;
 	private Timer lockTimer = new Timer();
 	
+	private int syncHeight;
+	
 	AssetsFavorites assetsFavorites; 
 	
 	//CONSTRUCTORS
 	
 	public Wallet()
 	{
+		this.syncHeight = -1;
 		//CHECK IF EXISTS
 		if(this.exists())
 		{
@@ -77,6 +80,11 @@ public class Wallet extends Observable implements Observer
 	}
 	
 	//GETTERS/SETTERS
+	
+	public int getSyncHeight()
+	{
+		return this.syncHeight;
+	}
 	
 	public void initiateAssetsFavorites()
 	{
@@ -422,6 +430,10 @@ public class Wallet extends Observable implements Observer
 	
 	public void synchronize()
 	{
+		if(Controller.getInstance().isProcessingWalletSynchronize()) {
+			return;
+		}
+		
 		List<Account> accounts = this.getAccounts();
 		
 		//RESET MAPS
@@ -440,8 +452,8 @@ public class Wallet extends Observable implements Observer
 		
 		try{
 			Controller.getInstance().setNeedSync(false);
-			Controller.getInstance().isProcessSynchronize = true;
-		
+			Controller.getInstance().setProcessingWalletSynchronize(true);
+			this.syncHeight = 1;
 			do
 			{
 				//UPDATE
@@ -453,7 +465,8 @@ public class Wallet extends Observable implements Observer
 					
 					//Gui.getInstance().
 					
-					Logger.getGlobal().info("Synchronize wallet: " + block.getHeight());
+					this.syncHeight = block.getHeight();
+					Logger.getGlobal().info("Synchronize wallet: " + this.syncHeight);
 					this.database.commit();
 				}
 				
@@ -463,8 +476,9 @@ public class Wallet extends Observable implements Observer
 			while(block != null);
 			
 		}finally{
-			Controller.getInstance().isProcessSynchronize = false;
+			Controller.getInstance().setProcessingWalletSynchronize(false);
 			this.database.commit();
+			this.syncHeight = -1;
 		}
 		
 		
@@ -479,6 +493,15 @@ public class Wallet extends Observable implements Observer
 		Logger.getGlobal().info("Resetted balances");
 
 		Controller.getInstance().walletStatusUpdate(-1);
+		
+		//NOW IF NOT SYNCHRONIZED SET STATUS
+		//CHECK IF WE ARE UPTODATE
+		if(!Controller.getInstance().isUpToDate())
+		{
+			// NOTIFY
+			Controller.getInstance().notifyObservers(new ObserverMessage(
+					ObserverMessage.NETWORK_STATUS, Controller.STATUS_SYNCHRONIZING));
+		}
 		
 		//SET LAST BLOCK
 		

@@ -12,7 +12,6 @@ import org.json.simple.JSONObject;
 import controller.Controller;
 import settings.Settings;
 import utils.APIUtils;
-import utils.BuildTime;
 
 @Path("qora")
 @Produces(MediaType.APPLICATION_JSON)
@@ -56,11 +55,24 @@ public class QoraResource
 		return String.valueOf(Controller.getInstance().isUpToDate());
 	}
 	
+	@SuppressWarnings("unchecked")
 	@GET 
 	@Path("/settings")
 	public String getSettings() 
 	{ 
-		return Settings.getInstance().Dump().toJSONString(); 
+		if(Controller.getInstance().doesWalletExists() && !Controller.getInstance().isWalletUnlocked()) {
+			throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_WALLET_LOCKED);
+		}
+		
+		if(!Controller.getInstance().doesWalletExists() || Controller.getInstance().isWalletUnlocked())
+		{
+			JSONObject jsonObject = new JSONObject();
+			jsonObject.put("settings.json", Settings.getInstance().Dump());
+			jsonObject.put("peers.json", Settings.getInstance().getPeersJson());
+			return jsonObject.toJSONString();
+		}
+		
+		return "";
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -71,8 +83,8 @@ public class QoraResource
 		JSONObject jsonObject = new JSONObject();
 		
 		jsonObject.put("version", Controller.getInstance().getVersion());
-		jsonObject.put("buildDateTime", BuildTime.getInstance().getBuildDateTimeString());
-		jsonObject.put("buildTimeStamp", BuildTime.getInstance().getBuildTimestamp());
+		jsonObject.put("buildDate", Controller.getInstance().getBuildDateString());
+		jsonObject.put("buildTimeStamp", Controller.getInstance().getBuildTimestamp());
 	
 
 		return jsonObject.toJSONString();

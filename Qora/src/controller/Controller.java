@@ -7,11 +7,16 @@ import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.net.URL;
 import java.nio.file.Files;
 import java.security.SecureRandom;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -72,7 +77,6 @@ import qora.voting.Poll;
 import qora.voting.PollOption;
 import qora.wallet.Wallet;
 import settings.Settings;
-import utils.BuildTime;
 import utils.DateTimeFormat;
 import utils.ObserverMessage;
 import utils.Pair;
@@ -83,15 +87,18 @@ import webserver.WebService;
 
 public class Controller extends Observable {
 
-	private String version = "0.25.0 beta";
-	public static final String releaseVersion = "0.25.0";
+	private String version = "0.25.1";
+	private String buildTime = "2016-02-17 00:00:00 UTC";
+	private long buildTimestamp;
+	
+	public static final String releaseVersion = "0.25.1";
 
 //	TODO ENUM would be better here
 	public static final int STATUS_NO_CONNECTIONS = 0;
 	public static final int STATUS_SYNCHRONIZING = 1;
 	public static final int STATUS_OK = 2;
 
-	public boolean isProcessSynchronize = false; 
+	private boolean processingWalletSynchronize = false; 
 	private int status;
 	private Network network;
 	private ApiService rpcService;
@@ -115,6 +122,14 @@ public class Controller extends Observable {
 
 	private static Controller instance;
 
+	public boolean isProcessingWalletSynchronize() {
+		return processingWalletSynchronize;
+	}
+	
+	public void setProcessingWalletSynchronize(boolean isPocessing) {
+		this.processingWalletSynchronize = isPocessing;
+	}
+	
 	public String getVersion() {
 		return version;
 	}
@@ -125,6 +140,33 @@ public class Controller extends Observable {
 		} else {
 			return Network.MAINNET_PORT;
 		}
+	}
+	
+	public String getBuildDateTimeString(){
+		return DateTimeFormat.timestamptoString(this.getBuildTimestamp(), "yyyy-MM-dd HH:mm:ss z", "UTC");
+	}
+	
+	public String getBuildDateString(){
+		return DateTimeFormat.timestamptoString(this.getBuildTimestamp(), "yyyy-MM-dd", "UTC");
+	}
+	
+	public long getBuildTimestamp() {
+	    if(this.buildTimestamp == 0) {
+		    Date date = new Date();
+		    URL resource = getClass().getResource(getClass().getSimpleName() + ".class");
+		    if (resource != null) {
+		        if (!resource.getProtocol().equals("file")) {
+		        	DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss z");
+		        	try {
+						date = (Date)formatter.parse(this.buildTime);
+					} catch (ParseException e) {
+						e.printStackTrace();
+					}
+		        }
+		    }
+		    this.buildTimestamp = date.getTime();
+	    }
+	    return this.buildTimestamp;
 	}
 	
 	public byte[] getMessageMagic() {
@@ -153,6 +195,11 @@ public class Controller extends Observable {
 	
 	public byte[] getFoundMyselfID() {
 		return this.foundMyselfID;
+	}
+	
+	public int getWalletSyncHeight()
+	{
+		return this.wallet.getSyncHeight();
 	}
 	
 	public void getSendMyHeightToPeer (Peer peer) {
@@ -282,25 +329,32 @@ public class Controller extends Observable {
 		
 		//CHECK IF DB NEEDS UPDATE
 
-		//CHECK IF NAME STORAGE NEEDS UPDATE
-		if (DBSet.getInstance().getLocalDataMap().get("nsupdate") == null )
+		if(DBSet.getInstance().getBlockMap().getLastBlockSignature() != null)
 		{
-			//FIRST NAME STORAGE UPDATE
-			UpdateUtil.repopulateNameStorage( 70000 );
+			//CHECK IF NAME STORAGE NEEDS UPDATE
+			if (DBSet.getInstance().getLocalDataMap().get("nsupdate") == null )
+			{
+				//FIRST NAME STORAGE UPDATE
+				UpdateUtil.repopulateNameStorage( 70000 );
+				DBSet.getInstance().getLocalDataMap().set("nsupdate", "1");
+			}
+			//CREATE TRANSACTIONS FINAL MAP
+			if (DBSet.getInstance().getLocalDataMap().get("txfinalmap") == null )
+			{
+				//FIRST NAME STORAGE UPDATE
+				UpdateUtil.repopulateTransactionFinalMap(  );
+				DBSet.getInstance().getLocalDataMap().set("txfinalmap", "1");
+			}
+			
+			if (DBSet.getInstance().getLocalDataMap().get("blogpostmap") == null ||  !DBSet.getInstance().getLocalDataMap().get("blogpostmap").equals("2"))
+			{
+				//recreate comment postmap
+				UpdateUtil.repopulateCommentPostMap();
+				DBSet.getInstance().getLocalDataMap().set("blogpostmap", "2");
+			}
+		} else {
 			DBSet.getInstance().getLocalDataMap().set("nsupdate", "1");
-		}
-		//CREATE TRANSACTIONS FINAL MAP
-		if (DBSet.getInstance().getLocalDataMap().get("txfinalmap") == null )
-		{
-			//FIRST NAME STORAGE UPDATE
-			UpdateUtil.repopulateTransactionFinalMap(  );
 			DBSet.getInstance().getLocalDataMap().set("txfinalmap", "1");
-		}
-		
-		if (DBSet.getInstance().getLocalDataMap().get("blogpostmap") == null ||  !DBSet.getInstance().getLocalDataMap().get("blogpostmap").equals("2"))
-		{
-			//recreate comment postmap
-			UpdateUtil.repopulateCommentPostMap();
 			DBSet.getInstance().getLocalDataMap().set("blogpostmap", "2");
 		}
 		
@@ -309,7 +363,7 @@ public class Controller extends Observable {
 
 		// CREATE BLOCKCHAIN
 		this.blockChain = new BlockChain();
-
+		
 		// START API SERVICE
 		if (Settings.getInstance().isRpcEnabled()) {
 			this.rpcService = new ApiService();
@@ -625,7 +679,7 @@ public class Controller extends Observable {
 			// SEND VERSION MESSAGE
 			peer.sendMessage( MessageFactory.getInstance().createVersionMessage( 
 				Controller.getInstance().getVersion(),
-				BuildTime.getInstance().getBuildTimestamp() ));
+				this.getBuildTimestamp() ));
 		}
 		
 		// SEND HEIGTH MESSAGE
@@ -641,30 +695,36 @@ public class Controller extends Observable {
 			this.notifyObservers(new ObserverMessage(
 					ObserverMessage.NETWORK_STATUS, this.status));
 			
-			this.timer.cancel();
-			this.timer = new Timer();
-
-			TimerTask action = new TimerTask() {
-		        public void run() {
-		        	
-		        	if(Controller.getInstance().getStatus() == STATUS_OK)
-			        {
-		    			Controller.getInstance().statusInfo();
-
-			        	Controller.getInstance().setToOfflineTime(0L);
-			        	
-				       	if(Controller.getInstance().isNeedSync())
-				       	{
-				       		Controller.getInstance().synchronizeWallet();
-				       	}
-			        }
-		        }
-			};
-				
-			this.timer.schedule(action, 10000);
+			this.actionAfterConnect();
 		}
 	}
 
+	public void actionAfterConnect() 
+	{
+		this.timer.cancel();
+		this.timer = new Timer();
+
+		TimerTask action = new TimerTask() {
+	        public void run() {
+	        	
+	        	if(Controller.getInstance().getStatus() == STATUS_OK)
+		        {
+	    			Controller.getInstance().statusInfo();
+
+		        	Controller.getInstance().setToOfflineTime(0L);
+		        	
+			       	if(Controller.getInstance().isNeedSync() && !Controller.getInstance().isProcessingWalletSynchronize())
+			       	{
+			       		Controller.getInstance().synchronizeWallet();
+			       	}
+		        }
+	        }
+		};
+			
+		this.timer.schedule(action, Settings.getInstance().getConnectionTimeout());
+	}
+	
+	
 	public void forgingStatusChanged(ForgingStatus status) {
 		this.setChanged();
 		this.notifyObservers(new ObserverMessage(
@@ -776,8 +836,22 @@ public class Controller extends Observable {
 				// ASK BLOCK FROM BLOCKCHAIN
 				block = blockMessage.getBlock();
 
+				boolean isNewBlockValid = this.blockChain.isNewBlockValid(block);
+				
+				if(isNewBlockValid)	{
+					synchronized (this.peerHeight) {
+						this.peerHeight.put(message.getSender(),
+								blockMessage.getHeight());
+					}
+				}
+					
+				if(this.isProcessingWalletSynchronize()) {
+					
+					break;
+				}
+				
 				// CHECK IF VALID
-				if (this.blockChain.isNewBlockValid(block)
+				if (isNewBlockValid
 						&& this.synchronizer.process(block)) {
 					Logger.getGlobal().info("received new valid block");
 
@@ -795,13 +869,7 @@ public class Controller extends Observable {
 					 * this.peerHeight.keySet()) { this.peerHeight.put(peer,
 					 * this.blockChain.getHeight()); } }
 					 */
-				} else {
-					synchronized (this.peerHeight) {
-						// UPDATE SENDER HEIGHT + 1
-						this.peerHeight.put(message.getSender(),
-								blockMessage.getHeight());
-					}
-				}
+				} 
 
 				break;
 
@@ -1030,7 +1098,8 @@ public class Controller extends Observable {
 	public boolean recoverWallet(byte[] seed, String password, int amount) {
 		if(this.wallet.create(seed, password, amount, false))
 		{
-			Logger.getGlobal().info("The need to synchronize the wallet!");
+			Logger.getGlobal().info("Wallet needs to synchronize!");
+			this.actionAfterConnect();
 			this.setNeedSync(true);
 
 			return true;
@@ -1054,11 +1123,19 @@ public class Controller extends Observable {
 	}
 
 	public PrivateKeyAccount getPrivateKeyAccountByAddress(String address) {
-		return this.wallet.getPrivateKeyAccount(address);
+		if(this.doesWalletExists()) {
+			return this.wallet.getPrivateKeyAccount(address);
+		} else {
+			return null;
+		}
 	}
 
 	public Account getAccountByAddress(String address) {
-		return this.wallet.getAccount(address);
+		if(this.doesWalletExists()) {
+			return this.wallet.getAccount(address);
+		} else {
+			return null;
+		}
 	}
 
 	public BigDecimal getUnconfirmedBalance(String address) {
